@@ -78,6 +78,36 @@ describe("runMigrations", () => {
     }).pipe(Effect.provide(NodeSqliteClient.layer({ filename: ":memory:" }))),
   );
 
+  it.effect("adds the shell index after upstream migration 80 without changing turn items", () =>
+    Effect.gen(function* () {
+      const sql = yield* SqlClient.SqlClient;
+      yield* runMigrations({ toMigrationInclusive: 80 });
+      assert.deepStrictEqual((yield* history).at(-1), [80, "ScheduledTaskThreadMode"]);
+      yield* sql`
+        INSERT INTO orchestration_v2_projection_turn_items (
+          turn_item_id, thread_id, ordinal, type, status, updated_at, payload_json
+        ) VALUES ('item-1', 'thread-1', 0, 'thread_created', 'completed', '2026-01-01', '{}')
+      `;
+      const before = yield* sql`SELECT * FROM orchestration_v2_projection_turn_items`;
+
+      assert.deepStrictEqual(yield* runMigrations(), [[81, "ThreadCreatedShellIndex"]]);
+
+      assert.deepStrictEqual(yield* history, migrationManifest);
+      assert.deepStrictEqual(
+        yield* sql`SELECT * FROM orchestration_v2_projection_turn_items`,
+        before,
+      );
+      const indexes = yield* sql<{ readonly name: string }>`
+        SELECT name FROM sqlite_master
+        WHERE type = 'index' AND name = 'orchestration_v2_projection_turn_items_created_idx'
+      `;
+      assert.deepStrictEqual(indexes, [
+        { name: "orchestration_v2_projection_turn_items_created_idx" },
+      ]);
+      assert.deepStrictEqual(yield* runMigrations(), []);
+    }).pipe(Effect.provide(NodeSqliteClient.layer({ filename: ":memory:" }))),
+  );
+
   it.effect("drops the unused correlation index and keeps correlation values", () =>
     Effect.gen(function* () {
       const sql = yield* SqlClient.SqlClient;
