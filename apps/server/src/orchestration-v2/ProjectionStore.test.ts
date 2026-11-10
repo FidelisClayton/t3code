@@ -1842,7 +1842,7 @@ const assertProjectScopedShells = Effect.fn("assertProjectScopedShells")(functio
       yield* projectionStore.getThreadShell(threadId),
     );
   }
-  return { projectId, activeThreadId, forkThreadId, otherThreadId };
+  return { projectId, activeThreadId, forkThreadId, otherThreadId, sourceThreadId };
 });
 
 it.effect("SQL shells read a subagent family and a worktree's threads", () =>
@@ -4337,6 +4337,111 @@ it.layer(layerTest)("ProjectionStoreV2", (it) => {
       assert.sameMembers(
         scoped.threads.map((thread) => thread.id),
         [activeThreadId, forkThreadId],
+      );
+    }),
+  );
+
+  it.effect("reads only local durable creation links in bounded shell queries", () =>
+    Effect.gen(function* () {
+      const store = yield* ProjectionStore.ProjectionStoreV2;
+      const sql = yield* SqlClient.SqlClient;
+      const now = yield* DateTime.now;
+      const { projectId, activeThreadId, forkThreadId, sourceThreadId } =
+        yield* assertProjectScopedShells("creation-shell");
+      const target = ThreadId.make("thread:creation-shell:unavailable-target");
+      const rolledBackRun = RunId.make("run:creation-shell:rolled-back");
+      const secondTarget = ThreadId.make("thread:creation-shell:second-target");
+      const rolledBackTarget = ThreadId.make("thread:rolled-back-child");
+      const sourceProjection = yield* store.getThreadProjection(sourceThreadId);
+      const sourceRun = sourceProjection.runs[0]!;
+      for (const [owner, runId, targetThreadId, ordinal] of [
+        [activeThreadId, null, target, 1],
+        [activeThreadId, null, target, 2],
+        [sourceThreadId, sourceRun.id, ThreadId.make("thread:source-child"), 3],
+        [activeThreadId, rolledBackRun, rolledBackTarget, 4],
+        [activeThreadId, null, secondTarget, 5],
+      ] as const) {
+        yield* store.apply({
+          id: EventId.make(`event:creation-shell:${ordinal}`),
+          type: "turn-item.updated",
+          threadId: owner,
+          occurredAt: now,
+          payload: {
+            id: TurnItemId.make(`item:creation-shell:${ordinal}`),
+            threadId: owner,
+            runId,
+            nodeId: null,
+            providerThreadId: null,
+            providerTurnId: null,
+            nativeItemRef: null,
+            parentItemId: null,
+            ordinal,
+            status: "completed",
+            title: null,
+            startedAt: now,
+            completedAt: now,
+            updatedAt: now,
+            type: "thread_created",
+            targetThreadId,
+            targetRunId: null,
+            targetProviderInstanceId: providerInstanceId,
+            targetModel: modelSelection.model,
+          },
+        });
+      }
+      assert.sameMembers(
+        [...((yield* store.getThreadShell(activeThreadId))?.createdThreadIds ?? [])],
+        [target, secondTarget, rolledBackTarget],
+      );
+      yield* store.apply({
+        id: EventId.make("event:creation-shell:rolled-back"),
+        type: "run.created",
+        threadId: activeThreadId,
+        runId: rolledBackRun,
+        occurredAt: now,
+        payload: {
+          ...sourceRun,
+          id: rolledBackRun,
+          threadId: activeThreadId,
+          status: "rolled_back",
+        },
+      });
+      const { statements, tracer } = traceSqlStatements();
+      const snapshot = yield* store
+        .getShellSnapshot({ projectId, location: "active" })
+        .pipe(Effect.withTracer(tracer));
+      assert.sameMembers(
+        snapshot.threads.map((thread) => thread.id),
+        [activeThreadId, forkThreadId],
+      );
+      for (const threadId of [activeThreadId, forkThreadId]) {
+        const expected = threadId === activeThreadId ? [secondTarget, target] : [];
+        assert.deepEqual(
+          snapshot.threads.find((thread) => thread.id === threadId)?.createdThreadIds,
+          expected,
+        );
+        assert.deepEqual((yield* store.getThreadShell(threadId))?.createdThreadIds, expected);
+        assert.deepEqual(
+          ProjectionStore.threadShellFromProjection(yield* store.getThreadProjection(threadId))
+            .createdThreadIds,
+          expected,
+        );
+      }
+      const decode = yield* sql.withTransaction(
+        store.readShellSnapshot({ projectId, location: "active" }),
+      );
+      assert.deepEqual(yield* decode, snapshot);
+      const queries = statements.filter((statement) =>
+        statement.includes("i.type = 'thread_created'"),
+      );
+      assert.lengthOf(queries, 1);
+      const plan = yield* sql.unsafe<{ readonly detail: string }>(
+        `EXPLAIN QUERY PLAN ${queries[0]}`,
+      );
+      assert.isTrue(
+        plan.some((row) =>
+          row.detail.includes("orchestration_v2_projection_turn_items_created_idx"),
+        ),
       );
     }),
   );

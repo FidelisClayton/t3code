@@ -1,4 +1,4 @@
-import { DEFAULT_CLIENT_SETTINGS, EnvironmentId, ProjectId } from "@t3tools/contracts";
+import { DEFAULT_CLIENT_SETTINGS, EnvironmentId, ProjectId, ThreadId } from "@t3tools/contracts";
 import { describe, expect, it, vi } from "vite-plus/test";
 import { userEvent } from "vite-plus/test/browser";
 
@@ -6,12 +6,18 @@ import { render } from "../../test/render";
 import { openCommandPalette } from "../commandPaletteBus";
 import { useHandleNewThread } from "../hooks/useHandleNewThread";
 import { __setClientSettingsForTests, getClientSettings } from "../hooks/useSettings";
-import { useProjects } from "../state/entities";
+import { presentThreadShell } from "@t3tools/client-runtime/state/models";
+import { scopedThreadKey, scopeThreadRef } from "@t3tools/client-runtime/environment";
+import { makeThreadFixture } from "../test-fixtures";
+import { useUiStateStore } from "../uiStateStore";
+import { useThreadRouteTarget } from "../hooks/useThreadRouteTarget";
+import { useProjects, useQuietThreadShells } from "../state/entities";
 import type { Project } from "../types";
 import Sidebar from "./Sidebar";
 import { SidebarProvider } from "./ui/sidebar";
 
 vi.mock("../state/entities", { spy: true });
+vi.mock("../hooks/useThreadRouteTarget", { spy: true });
 vi.mock("../hooks/useHandleNewThread", { spy: true });
 vi.mock("../commandPaletteBus", () => ({
   openCommandPalette: vi.fn(),
@@ -85,5 +91,96 @@ describe("sidebar header new thread", () => {
       expect(openCommandPalette).not.toHaveBeenCalled();
       expect(startThread).toHaveBeenCalledExactlyOnceWith(currentProjectRef);
     }
+  });
+});
+
+describe("Boring thread disclosure", () => {
+  it("reveals a newly routed grandchild once and preserves a later explicit collapse across remount", async () => {
+    using stack = new DisposableStack();
+    const previousSettings = getClientSettings();
+    const previousUiState = useUiStateStore.getState();
+    stack.defer(() => {
+      __setClientSettingsForTests(previousSettings);
+      useUiStateStore.setState(previousUiState);
+      vi.mocked(useQuietThreadShells).mockReset();
+      vi.mocked(useThreadRouteTarget).mockReset();
+    });
+    __setClientSettingsForTests({ ...DEFAULT_CLIENT_SETTINGS, boringSidebarEnabled: true });
+    const owner = project("family-project");
+    const thread = (id: string, children: string[] = []) =>
+      presentThreadShell(owner.environmentId, {
+        ...makeThreadFixture().source,
+        id: ThreadId.make(id),
+        title: id,
+        projectId: owner.id,
+        createdThreadIds: children.map((id) => ThreadId.make(id)),
+      });
+    const threads = [
+      thread("Parent", ["Child"]),
+      thread("Child", ["Grandchild"]),
+      thread("Grandchild"),
+    ];
+    const ref = (id: string) => scopeThreadRef(owner.environmentId, ThreadId.make(id));
+    const parentKey = scopedThreadKey(ref("Parent"));
+    const childKey = scopedThreadKey(ref("Child"));
+    useUiStateStore.setState({
+      projectExpandedById: {},
+      sidebarProjectScopeKeys: [],
+      sidebarThreadExpandedByKey: { [parentKey]: false, [childKey]: false },
+    });
+    vi.mocked(useProjects).mockReturnValue([owner]);
+    vi.mocked(useQuietThreadShells).mockReturnValue(threads);
+    vi.mocked(useThreadRouteTarget).mockReturnValue({
+      kind: "server",
+      threadRef: ref("Grandchild"),
+    });
+    vi.mocked(useHandleNewThread).mockReturnValue({
+      activeDraftThread: null,
+      activeThread: null,
+      defaultProjectRef: { environmentId: owner.environmentId, projectId: owner.id },
+      handleNewThread: vi.fn(),
+      routeDraftId: null,
+      routeThreadRef: ref("Grandchild"),
+    });
+    const reveal = { observedKey: null, pendingKey: null };
+    const ui = () => (
+      <SidebarProvider>
+        <Sidebar routeReveal={reveal} />
+      </SidebarProvider>
+    );
+    await using screen = await render(ui());
+    await expect.element(screen.getByRole("button", { name: /^Grandchild,/ })).toBeVisible();
+    await vi.waitFor(() => expect(reveal.pendingKey).toBeNull());
+    const parent = screen.container.querySelector<HTMLElement>(
+      `[data-sidebar-row="${parentKey}"]`,
+    )!;
+    const routeBefore = screen.router!.state.location.href;
+    await userEvent.click(parent.querySelector<HTMLElement>("[data-sidebar-disclosure]")!);
+    await expect
+      .element(screen.getByRole("button", { name: /^Grandchild,/ }))
+      .not.toBeInTheDocument();
+    expect(screen.router!.state.location.href).toBe(routeBefore);
+    expect(useUiStateStore.getState().sidebarThreadExpandedByKey[parentKey]).toBe(false);
+    await screen.rerender(ui());
+    await expect
+      .element(screen.getByRole("button", { name: /^Grandchild,/ }))
+      .not.toBeInTheDocument();
+    await screen.rerender(<div />);
+    await screen.rerender(ui());
+    await expect
+      .element(screen.getByRole("button", { name: /^Grandchild,/ }))
+      .not.toBeInTheDocument();
+    vi.mocked(useThreadRouteTarget).mockReturnValue({ kind: "server", threadRef: ref("Parent") });
+    await screen.rerender(ui());
+    vi.mocked(useThreadRouteTarget).mockReturnValue({
+      kind: "server",
+      threadRef: ref("Grandchild"),
+    });
+    await screen.rerender(ui());
+    await expect.element(screen.getByRole("button", { name: /^Grandchild,/ })).toBeVisible();
+    await userEvent.click(screen.getByRole("button", { name: /^Grandchild,/ }));
+    await vi.waitFor(() =>
+      expect(screen.router!.state.location.pathname).toBe("/local/Grandchild"),
+    );
   });
 });

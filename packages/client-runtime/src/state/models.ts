@@ -134,7 +134,10 @@ function threadRunStatusIsActive(status: ThreadRuntimeSummary["status"]): boolea
   );
 }
 
+const EMPTY_CREATED_THREAD_IDS: ReadonlyArray<ThreadId> = Object.freeze([]);
+
 export interface EnvironmentThreadShell {
+  readonly createdThreadIds: ReadonlyArray<ThreadId>;
   readonly environmentId: EnvironmentId;
   readonly id: ThreadId;
   readonly projectId: ProjectId;
@@ -279,6 +282,7 @@ export function presentThreadShell(
   const runtime = shellRuntime(thread);
   return {
     environmentId,
+    createdThreadIds: thread.createdThreadIds ?? EMPTY_CREATED_THREAD_IDS,
     id: thread.id,
     projectId: thread.projectId,
     title:

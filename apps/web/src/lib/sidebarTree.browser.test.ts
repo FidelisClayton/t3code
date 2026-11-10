@@ -34,6 +34,40 @@ function press(target: HTMLElement, key: string, init: KeyboardEventInit = {}) {
 }
 
 describe("sidebar keyboard navigation", () => {
+  it("uses a thread disclosure for Left and Right without activating its chat", async () => {
+    using tree = setup();
+    const parent = tree.row("parent");
+    const child = tree.row("child", "parent");
+    const grandchild = tree.row("grandchild", "child");
+    const disclosure = document.createElement("button");
+    disclosure.dataset.sidebarDisclosure = "";
+    parent.append(disclosure);
+    parent.setAttribute("aria-expanded", "true");
+    const activate = vi.fn();
+    parent.addEventListener("click", activate);
+    disclosure.addEventListener("click", (event) => {
+      event.stopPropagation();
+      const expanded = parent.getAttribute("aria-expanded") === "true";
+      parent.setAttribute("aria-expanded", String(!expanded));
+      child.hidden = expanded;
+      grandchild.hidden = expanded;
+    });
+    tree.install();
+    grandchild.focus();
+    disclosure.click();
+    await vi.waitFor(() => expect(document.activeElement).toBe(parent));
+    press(parent, "ArrowRight");
+    expect(parent.getAttribute("aria-expanded")).toBe("true");
+    press(parent, "ArrowRight");
+    expect(document.activeElement).toBe(child);
+    press(child, "ArrowLeft");
+    expect(document.activeElement).toBe(parent);
+    press(parent, "ArrowLeft");
+    expect(parent.getAttribute("aria-expanded")).toBe("false");
+    expect(activate).not.toHaveBeenCalled();
+    parent.click();
+    expect(activate).toHaveBeenCalledOnce();
+  });
   it("moves focus without activating rows, clamps at the ends, and keeps every row in the Tab order", () => {
     using tree = setup();
     const first = tree.row("first");

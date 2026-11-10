@@ -18,6 +18,7 @@ import {
 function makeUiState(overrides: Partial<UiState> = {}): UiState {
   return {
     projectExpandedById: {},
+    sidebarThreadExpandedByKey: {},
     projectOrder: [],
     sidebarProjectScopeKeys: [],
     threadLastVisitedAtById: {},
@@ -29,6 +30,14 @@ function makeUiState(overrides: Partial<UiState> = {}): UiState {
 }
 
 describe("uiStateStore pure functions", () => {
+  it("retains environment-scoped family collapse preferences and sanitizes old state", () => {
+    expect(parsePersistedState({}).sidebarThreadExpandedByKey).toEqual({});
+    expect(
+      parsePersistedState({
+        sidebarThreadExpandedByKey: { "local:parent": false, "remote:parent": true },
+      }).sidebarThreadExpandedByKey,
+    ).toEqual({ "local:parent": false, "remote:parent": true });
+  });
   it("stores server timestamps without moving visit state backwards", () => {
     const threadId = ThreadId.make("thread-1");
     const initialState = makeUiState();
@@ -117,6 +126,7 @@ describe("parsePersistedState", () => {
     });
 
     expect(parsed).toEqual({
+      sidebarThreadExpandedByKey: {},
       projectExpandedById: {
         logical: false,
       },
@@ -200,6 +210,7 @@ describe("uiStateStore persistence", () => {
 
   it("persists raw UI preferences including thread visit markers", () => {
     const state = makeUiState({
+      sidebarThreadExpandedByKey: { "environment:parent": false },
       projectExpandedById: {
         logical: false,
       },
@@ -222,6 +233,7 @@ describe("uiStateStore persistence", () => {
       localStorageStub.getItem(PERSISTED_STATE_KEY) ?? "{}",
     ) as PersistedUiState;
     expect(persisted).toEqual({
+      sidebarThreadExpandedByKey: { "environment:parent": false },
       projectExpandedById: {
         logical: false,
       },

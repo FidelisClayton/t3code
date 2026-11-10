@@ -1594,7 +1594,22 @@ export function threadShellFromProjection(
     runs,
     pullRequests: projection.thread.pullRequests,
   });
+  const rolledBackRunIds = new Set(
+    projection.runs.filter((run) => run.status === "rolled_back").map((run) => run.id),
+  );
+  const createdThreadIds = [
+    ...new Set(
+      projection.turnItems.flatMap((item) =>
+        item.type === "thread_created" &&
+        item.threadId === projection.thread.id &&
+        (item.runId === null || !rolledBackRunIds.has(item.runId))
+          ? [item.targetThreadId]
+          : [],
+      ),
+    ),
+  ];
   return {
+    createdThreadIds: createdThreadIds.toSorted(),
     createdBy: projection.thread.createdBy,
     creationSource: projection.thread.creationSource,
     id: projection.thread.id,
@@ -1872,10 +1887,12 @@ function visibleItemCountForShell(input: {
 }
 
 function shellFromState(input: {
+  readonly createdThreadIds: ReadonlyArray<ThreadId>;
   readonly state: ShellThreadState;
   readonly visibleItemCount: number;
 }): OrchestrationV2ThreadShell {
   return {
+    createdThreadIds: input.createdThreadIds,
     createdBy: input.state.thread.createdBy,
     creationSource: input.state.thread.creationSource,
     id: input.state.thread.id,
@@ -6402,6 +6419,30 @@ export const layer: Layer.Layer<ProjectionStoreV2, never, SqlClient.SqlClient> =
             WHERE thread_id IN (SELECT value FROM json_each(${encodeIdList(threadIds)}))
           `;
 
+    const selectShellCreatedThreadRows = (threadIds: ReadonlyArray<ThreadId>) =>
+      sql<{ readonly thread_id: string; readonly target_thread_id: string }>`
+        SELECT DISTINCT i.thread_id, json_extract(i.payload_json, '$.targetThreadId') AS target_thread_id
+        FROM orchestration_v2_projection_turn_items i
+        LEFT JOIN orchestration_v2_projection_runs r ON r.run_id = i.run_id
+        WHERE i.type = 'thread_created'
+          AND (r.status IS NULL OR r.status <> 'rolled_back')
+          AND i.thread_id IN (SELECT value FROM json_each(${encodeIdList(threadIds)}))
+        ORDER BY i.thread_id, target_thread_id
+      `;
+
+    const createdThreadIdsByThreadId = (
+      rows: ReadonlyArray<{ readonly thread_id: string; readonly target_thread_id: string }>,
+    ) => {
+      const ids = new Map<ThreadId, ThreadId[]>();
+      for (const row of rows) {
+        const ownerId = ThreadId.make(row.thread_id);
+        const targets = ids.get(ownerId) ?? [];
+        targets.push(ThreadId.make(row.target_thread_id));
+        ids.set(ownerId, targets);
+      }
+      return ids;
+    };
+
     const selectShellPendingTurnItemRows = (
       threadIds?: ReadonlyArray<ThreadId>,
       activeRunIds: ReadonlyArray<string> = [],
@@ -6930,6 +6971,7 @@ export const layer: Layer.Layer<ProjectionStoreV2, never, SqlClient.SqlClient> =
         sequenceRows,
         providerThreadRows,
         pendingTurnItemRows,
+        createdThreadRows,
       ] = yield* Effect.all([
         readForThreadIds(selectShellRunRows, forkSourceIds),
         readForThreadIds(selectShellRunItemCounts, forkSourceIds),
@@ -6951,6 +6993,7 @@ export const layer: Layer.Layer<ProjectionStoreV2, never, SqlClient.SqlClient> =
             ),
           ),
         ),
+        readForThreadIds(selectShellCreatedThreadRows, [...targetThreadIds]),
       ]);
       return {
         targetThreadIds,
@@ -6961,6 +7004,7 @@ export const layer: Layer.Layer<ProjectionStoreV2, never, SqlClient.SqlClient> =
         sequenceRows,
         providerThreadRows,
         pendingTurnItemRows,
+        createdThreadRows,
       };
     });
 
@@ -6973,6 +7017,7 @@ export const layer: Layer.Layer<ProjectionStoreV2, never, SqlClient.SqlClient> =
       sequenceRows,
       providerThreadRows,
       pendingTurnItemRows,
+      createdThreadRows,
     }: Effect.Success<ReturnType<typeof readShellSnapshotRows>>) {
       const { runOrdinalsByThreadId, itemCountsByThreadId } = runMapsByThreadId({
         runRows,
@@ -6993,10 +7038,12 @@ export const layer: Layer.Layer<ProjectionStoreV2, never, SqlClient.SqlClient> =
       );
       const statesByThreadId = new Map(states.map((state) => [state.thread.id, state]));
 
+      const creationIds = createdThreadIdsByThreadId(createdThreadRows);
       const shells = states
         .filter((state) => targetThreadIds.has(state.thread.id))
         .map((state) =>
           shellFromState({
+            createdThreadIds: creationIds.get(state.thread.id) ?? [],
             state,
             visibleItemCount: visibleItemCountForShell({
               threadId: state.thread.id,
@@ -7343,6 +7390,7 @@ export const layer: Layer.Layer<ProjectionStoreV2, never, SqlClient.SqlClient> =
               shellItemCountRows,
               providerThreadRows,
               pendingTurnItemRows,
+              createdThreadRows,
             ] = yield* Effect.all([
               forkSourceIds.length === 0
                 ? Effect.succeed([] as ReadonlyArray<ShellRunRow>)
@@ -7360,6 +7408,7 @@ export const layer: Layer.Layer<ProjectionStoreV2, never, SqlClient.SqlClient> =
                     : [],
                 ),
               ),
+              selectShellCreatedThreadRows([threadId]),
             ]);
             const { runOrdinalsByThreadId, itemCountsByThreadId } = runMapsByThreadId({
               runRows,
@@ -7385,6 +7434,7 @@ export const layer: Layer.Layer<ProjectionStoreV2, never, SqlClient.SqlClient> =
               return null;
             }
             return shellFromState({
+              createdThreadIds: createdThreadIdsByThreadId(createdThreadRows).get(threadId) ?? [],
               state,
               visibleItemCount: visibleItemCountForShell({ threadId, statesByThreadId }),
             });

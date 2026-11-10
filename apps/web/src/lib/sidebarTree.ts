@@ -11,7 +11,7 @@ export function attachSidebarTree(element: HTMLElement | null) {
  */
 export function installSidebarTree(root: HTMLElement) {
   let focusedId: string | undefined;
-  let focusedParent: string | undefined;
+  let focusedAncestors: string[] = [];
   let focusedIndex = -1;
   let ownsFocus = false;
   let contextMenuRow: HTMLElement | undefined;
@@ -54,7 +54,9 @@ export function installSidebarTree(root: HTMLElement) {
     const rows = visibleRows();
     const target =
       rows.find((row) => row.dataset.sidebarRow === focusedId) ??
-      rows.find((row) => row.dataset.sidebarRow === focusedParent) ??
+      focusedAncestors
+        .map((id) => rows.find((row) => row.dataset.sidebarRow === id))
+        .find((row) => row !== undefined) ??
       rows[Math.min(Math.max(focusedIndex, 0), rows.length - 1)];
     // A settled row moves to the bottom shelf; scrolling after it fights the route reveal.
     target?.focus({ preventScroll: true });
@@ -75,8 +77,18 @@ export function installSidebarTree(root: HTMLElement) {
     const row = ownerRow(event.target);
     if (!row) return;
     focusedId = row.dataset.sidebarRow;
-    focusedParent = row.dataset.sidebarParent;
+    focusedAncestors = [];
+    let parentId = row.dataset.sidebarParent;
+    while (parentId !== undefined && !focusedAncestors.includes(parentId)) {
+      focusedAncestors.push(parentId);
+      parentId = root.querySelector<HTMLElement>(`[data-sidebar-row="${CSS.escape(parentId)}"]`)
+        ?.dataset.sidebarParent;
+    }
     focusedIndex = visibleRows().indexOf(row);
+  };
+  const toggleRow = (row: HTMLElement) => {
+    const disclosure = row.querySelector<HTMLElement>("[data-sidebar-disclosure]");
+    (disclosure ?? row).click();
   };
   const onKeyDown = (event: KeyboardEvent) => {
     const row = event.target;
@@ -123,14 +135,14 @@ export function installSidebarTree(root: HTMLElement) {
         target = rows.at(-1);
         break;
       case "ArrowRight":
-        if (row.getAttribute("aria-expanded") === "false") row.click();
+        if (row.getAttribute("aria-expanded") === "false") toggleRow(row);
         else
           target = rows.find(
             (candidate) => candidate.dataset.sidebarParent === row.dataset.sidebarRow,
           );
         break;
       case "ArrowLeft":
-        if (row.getAttribute("aria-expanded") === "true") row.click();
+        if (row.getAttribute("aria-expanded") === "true") toggleRow(row);
         else
           target = rows.find(
             (candidate) => candidate.dataset.sidebarRow === row.dataset.sidebarParent,

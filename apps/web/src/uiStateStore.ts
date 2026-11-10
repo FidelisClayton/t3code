@@ -20,6 +20,7 @@ const LEGACY_PERSISTED_STATE_KEYS = [
 
 export interface PersistedUiState {
   projectExpandedById?: Record<string, boolean>;
+  sidebarThreadExpandedByKey?: Record<string, boolean>;
   projectOrder?: string[];
   threadLastVisitedAtById?: Record<string, string>;
   collapsedProjectCwds?: string[];
@@ -40,6 +41,7 @@ export interface UiProjectState {
 }
 
 export interface UiThreadState {
+  sidebarThreadExpandedByKey: Record<string, boolean>;
   threadLastVisitedAtById: Record<string, string>;
   threadChangedFilesExpandedById: Record<string, Record<string, boolean>>;
 }
@@ -57,6 +59,7 @@ export interface UiState
 
 const initialState: UiState = {
   projectExpandedById: {},
+  sidebarThreadExpandedByKey: {},
   projectOrder: [],
   sidebarProjectScopeKeys: [],
   threadLastVisitedAtById: {},
@@ -144,6 +147,7 @@ export function parsePersistedState(parsed: PersistedUiState): UiState {
 
   return {
     projectExpandedById,
+    sidebarThreadExpandedByKey: sanitizeBooleanRecord(parsed.sidebarThreadExpandedByKey),
     projectOrder,
     threadLastVisitedAtById: sanitizeTimestampRecord(parsed.threadLastVisitedAtById),
     threadChangedFilesExpandedById:
@@ -224,6 +228,7 @@ export function persistState(state: UiState): void {
       PERSISTED_STATE_KEY,
       JSON.stringify({
         projectExpandedById,
+        sidebarThreadExpandedByKey: state.sidebarThreadExpandedByKey,
         projectOrder: state.projectOrder,
         threadLastVisitedAtById: state.threadLastVisitedAtById,
         defaultAdvertisedEndpointKey: state.defaultAdvertisedEndpointKey,
@@ -429,6 +434,7 @@ export function reorderProjects(
 }
 
 interface UiStateStore extends UiState {
+  setSidebarThreadExpanded: (keys: readonly string[], expanded: boolean) => void;
   markThreadVisited: (threadId: string, visitedAt: string) => void;
   markThreadUnread: (threadId: string, latestTurnCompletedAt: string | null | undefined) => void;
   setThreadChangedFilesExpanded: (threadId: string, turnId: string, expanded: boolean) => void;
@@ -445,6 +451,16 @@ interface UiStateStore extends UiState {
 
 export const useUiStateStore = create<UiStateStore>((set) => ({
   ...readPersistedState(),
+  setSidebarThreadExpanded: (keys, expanded) =>
+    set((state) => {
+      if (keys.every((key) => state.sidebarThreadExpandedByKey[key] === expanded)) return state;
+      return {
+        sidebarThreadExpandedByKey: {
+          ...state.sidebarThreadExpandedByKey,
+          ...Object.fromEntries(keys.map((key) => [key, expanded])),
+        },
+      };
+    }),
   markThreadVisited: (threadId, visitedAt) =>
     set((state) => markThreadVisited(state, threadId, visitedAt)),
   markThreadUnread: (threadId, latestTurnCompletedAt) =>
