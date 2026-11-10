@@ -35,6 +35,16 @@ describe("WebSocket RPC contracts", () => {
     ).toBe(true);
   });
 
+  it("bounds Markdown reference IDs at the read RPC boundary", () => {
+    const request = WsRpcGroup.requests.get(ORCHESTRATION_V2_WS_METHODS.getMarkdownReference);
+    if (request === undefined) throw new Error("getMarkdownReference is not registered");
+    const decode = Schema.decodeUnknownExit(request.payloadSchema);
+    expect(Exit.isSuccess(decode({ threadId: "thread-1", id: "linear/E-406" }))).toBe(true);
+    for (const id of ["linear/a/b", "linear/E-406\n", "linear/" + "a".repeat(65)]) {
+      expect(Exit.isFailure(decode({ threadId: "thread-1", id }))).toBe(true);
+    }
+  });
+
   it("lets the server pick a new worktree's folder", () => {
     const createWorktree = WsRpcGroup.requests.get(WS_METHODS.vcsCreateWorktree);
     if (createWorktree === undefined) throw new Error("vcs.createWorktree is not registered");

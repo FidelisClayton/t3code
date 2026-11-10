@@ -1,3 +1,4 @@
+import type { MarkdownChoiceDraftUpdate } from "./chat/custom-blocks/markdownChoiceDraft";
 import { ChildThreadApprovals } from "./chat/ChildThreadApprovals";
 import { workspaceAreaProps } from "../lib/workspaceFocus";
 import { sourceControlClients } from "@t3tools/client-runtime/source-control-clients";
@@ -39,6 +40,7 @@ import { recallCheckoutIsRepo, rememberCheckoutIsRepo } from "./ChatView.logic";
 import { useLogicalProjectEnvironments } from "../hooks/useLogicalProjectEnvironments";
 import { useStableCallback } from "../hooks/useStableCallback";
 import { useProjectScriptEditing } from "./chat/useProjectScriptEditing";
+import { RunPanelButton, focusRunRequest, useRunResponseFocus } from "./run-panel/RunPanel";
 import { RightPanelSurfaceContent } from "./chat/RightPanelSurfaceContent";
 import { usePendingThreadRequests } from "./chat/usePendingThreadRequests";
 import { isScratchProject } from "@t3tools/client-runtime/state/projects";
@@ -632,6 +634,17 @@ export default function ChatView(props: ChatViewProps) {
     return inserted;
   };
   const citeAssistantTextStable = useStableCallback(citeAssistantText);
+  const updateChoiceDraftStable = useStableCallback((update: MarkdownChoiceDraftUpdate) => {
+    const queued = composerRef.current?.updateChoiceDraft(update) ?? false;
+    if (!queued) {
+      toastManager.add({
+        type: "warning",
+        title: "The composer is not ready",
+        description: "Try selecting the choice after the connection or pending input is resolved.",
+      });
+    }
+    return queued;
+  });
   const [isWorkspaceFileDragActive, setIsWorkspaceFileDragActive] = useState(false);
   const [optimisticBlobPreviews] = useState(createOptimisticBlobPreviews);
   const [heldOptimisticUserMessages, setHeldOptimisticUserMessages] = useState(() =>
@@ -1803,6 +1816,13 @@ export default function ChatView(props: ChatViewProps) {
     composerRef.current?.focusAtEnd();
   };
   const focusComposerStable = useStableCallback(focusComposer);
+  const runResponseFocus = useRunResponseFocus({
+    scopeKey: routeThreadKey,
+    open: rightPanelOpen,
+    present: rightPanelPresent,
+    composer: composerOverlayElement,
+    focusComposer: focusComposerStable,
+  });
   const canInterruptRunningThread =
     canOperateThread && deriveCanInterruptRunningThread(activeThread !== undefined, activeRuntime);
   const onInterrupt = async () => {
@@ -2340,6 +2360,7 @@ export default function ChatView(props: ChatViewProps) {
     addDeviceSurfaceStable,
     addDiffSurfaceStable,
     addFilesSurfaceStable,
+    addRunSurfaceStable,
     addPullRequestSurfaceStable,
     addPullRequestsSurfaceStable,
     closePreviewPanelStable,
@@ -3199,6 +3220,16 @@ export default function ChatView(props: ChatViewProps) {
       workspaceMutationId={workspaceMutationId}
       getShortcutContext={getShortcutContextStable}
       onSendAnnotation={sendPreviewAnnotationStable}
+      onRespondInChat={() => {
+        scrollToEnd(true);
+        if (shouldUsePlanSidebarSheet) {
+          runResponseFocus.requestFocus();
+          closePreviewPanelStable();
+        } else {
+          const target = focusRunRequest(composerOverlayElement, focusComposerStable);
+          if (target) target.focus();
+        }
+      }}
       onCloseSurface={closeRightPanelSurface}
       sideChatParentPanel={sideChatParentPanel}
       terminal={{
@@ -3253,10 +3284,18 @@ export default function ChatView(props: ChatViewProps) {
     onToggleRightPanel: toggleRightPanelStable,
   } satisfies PanelLayoutControlsProps;
   const panelToggleControls = (
-    <PanelLayoutControls
-      {...panelToggleControlProps}
-      showThreadPanelControl={!inlineRightPanelOwnsTitleBar}
-    />
+    <>
+      {isServerThread && activeThreadRef && !embedded ? (
+        <RunPanelButton
+          threadRef={activeThreadRef}
+          open={rightPanelOpen && activeRightPanelSurface?.kind === "run"}
+        />
+      ) : null}
+      <PanelLayoutControls
+        {...panelToggleControlProps}
+        showThreadPanelControl={!inlineRightPanelOwnsTitleBar}
+      />
+    </>
   );
   const threadPanelHeaderControl = <ThreadPanelHeaderControl {...panelToggleControlProps} />;
   const panelLayoutControls = (
@@ -3460,6 +3499,7 @@ export default function ChatView(props: ChatViewProps) {
                   onRevertToTurnCount={onRevertTimelineTurnStable}
                   onUseArtifactTemplate={insertArtifactTemplateStable}
                   onSendAppMessage={sendAppMessageStable}
+                  onChoiceDraftUpdate={updateChoiceDraftStable}
                   isRevertingCheckpoint={isRevertingCheckpoint}
                   onImageExpand={onExpandTimelineImageStable}
                   onFileOpen={openFileAttachmentStable}
@@ -3944,6 +3984,7 @@ export default function ChatView(props: ChatViewProps) {
           widthStorageKey={`t3code:preview-panel-width:${activeThreadKey}`}
           sheetAnimationDurationMs={panelAnimationsActive ? panelAnimationDurationMs : 0}
           onCloseSheet={closePreviewPanelStable}
+          onCloseFocus={runResponseFocus.onCloseFocus}
           open={rightPanelOpen}
           keybindings={keybindings}
           getShortcutContext={getShortcutContextStable}
@@ -3982,6 +4023,7 @@ export default function ChatView(props: ChatViewProps) {
           onAddBrowserInProfile={createBrowserSurfaceStable}
           onAddTerminal={addTerminalSurfaceStable}
           onAddDiff={addDiffSurfaceStable}
+          onAddRun={isServerThread ? addRunSurfaceStable : undefined}
           onAddFiles={addFilesSurfaceStable}
           onAddPullRequest={addPullRequestSurfaceStable}
           onAddPullRequests={addPullRequestsSurfaceStable}

@@ -483,6 +483,14 @@
       "types": "./src/generatedImageMarkdown.ts",
       "import": "./src/generatedImageMarkdown.ts"
     },
+    "./markdownCustomFence": {
+      "types": "./src/markdownCustomFence.ts",
+      "import": "./src/markdownCustomFence.ts"
+    },
+    "./markdownReferences": {
+      "types": "./src/markdownReferences.ts",
+      "import": "./src/markdownReferences.ts"
+    },
     "./markdownPipeline": {
       "types": "./src/markdownPipeline.ts",
       "import": "./src/markdownPipeline.ts"

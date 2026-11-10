@@ -96,6 +96,11 @@ describe("closedViewStore", () => {
       threadRef: refA,
       surface: { id: "side-chat:side", kind: "side-chat", threadId: ThreadId.make("side") },
     });
+    const runId = store.remember({
+      kind: "panel-tab",
+      threadRef: refA,
+      surface: { id: "run", kind: "run" },
+    });
     const publicId = store.remember(diff(refA));
     const browserId = store.remember({
       kind: "browser",
@@ -126,6 +131,7 @@ describe("closedViewStore", () => {
     expect(useClosedViewStore.getState().entries.map((entry) => entry.id)).toEqual([
       browserId,
       publicId,
+      runId,
       sideChatId,
     ]);
     const saved = JSON.stringify(await storage!.getItem(name!));

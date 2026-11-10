@@ -12,7 +12,7 @@ export function AssistantCitationCommentEditor({
   onCancel,
   onDraftChange,
 }: {
-  citation: AssistantCitation;
+  citation: Pick<AssistantCitation, "comment">;
   inputRef?: Ref<HTMLTextAreaElement>;
   onSubmit: (comment: string) => boolean;
   onSubmitAndSend?: (comment: string) => boolean;
@@ -48,7 +48,11 @@ export function AssistantCitationCommentEditor({
       <textarea
         ref={inputRef}
         aria-label="Comment on selected text"
-        aria-description="Enter to save the citation comment; Command/Ctrl+Enter to save and send; Shift+Enter for a new line."
+        aria-description={
+          onSubmitAndSend
+            ? "Enter to save the citation comment; Command/Ctrl+Enter to save and send; Shift+Enter for a new line."
+            : "Enter to save the comment; Shift+Enter for a new line."
+        }
         aria-invalid={commentTooLong || undefined}
         placeholder="Add an optional comment..."
         rows={2}

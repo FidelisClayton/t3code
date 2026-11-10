@@ -13,6 +13,7 @@ import {
 import {
   type AssistantTextSelector,
   captureAssistantTextSelection,
+  captureAssistantTextRange,
   createAssistantTextSelector,
   findAssistantCitationText,
 } from "./assistantTextSelection";
@@ -88,8 +89,10 @@ class SelectionNode {
   contains(node: SelectionNode): boolean {
     return node === this || this.childNodes.some((child) => child.contains(node));
   }
-  matches(selector: string) {
+  matches(selector: string): boolean {
     return selector.split(", ").some((part) => {
+      const without = /^(.*):not\((.*)\)$/.exec(part);
+      if (without) return this.matches(without[1]!) && !this.matches(without[2]!);
       if (!part.startsWith("[")) return part === this.tagName.toLowerCase();
       const [attribute, value] = part.slice(1, -1).split("=");
       return (
@@ -297,6 +300,32 @@ describe("captureAssistantTextSelection", () => {
     },
   );
 
+  it("captures choice phrase ranges with normalized offsets while excluding controls and hidden icons", () => {
+    const phrase = textNode("Parallel 😀");
+    const source = assistantSource(
+      textNode("Choose "),
+      new SelectionNode("BUTTON").append(textNode("Copy")),
+      new SelectionNode("BUTTON", "", { "data-choice-message": "message" }).append(
+        new SelectionNode("SPAN", "", { "aria-hidden": "true" }).append(textNode("Icon")),
+        phrase,
+      ),
+      new SelectionNode("BUTTON").append(textNode("Comment")),
+      textNode(" or serial."),
+    );
+    const selection = nativeSelection([phrase, 0], [phrase, phrase.length]);
+    const captured = captureAssistantTextRange(
+      source as unknown as HTMLElement,
+      selection.getRangeAt(0),
+    );
+    expect(captured?.selector).toEqual({
+      text: phrase.data,
+      start: 7,
+      end: 18,
+      prefix: "Choose ",
+      suffix: " or serial.",
+    });
+  });
+
   it("accepts a control endpoint only when none of its text is selected", () => {
     const quote = textNode("A paragraph.");
     const control = textNode("Copy");
@@ -316,6 +345,7 @@ describe("captureAssistantTextSelection", () => {
     new SelectionNode("DIV", "", { contenteditable: "true" }),
     new SelectionNode("SPAN", "", { hidden: "" }),
     new SelectionNode("SPAN", "", { "aria-hidden": "true" }),
+    new SelectionNode("P", "", { "data-assistant-citation-ignore": "" }),
   ])("rejects selected text at excluded endpoints: %j", (excluded) => {
     const quote = textNode("A paragraph.");
     const control = textNode("Excluded");
@@ -328,6 +358,9 @@ describe("captureAssistantTextSelection", () => {
     const first = textNode("Before 😀 ");
     const code = textNode("first line\r\n  second line\t🚀");
     const source = assistantSource(
+      new SelectionNode("P", "", { "data-assistant-citation-ignore": "" }).append(
+        textNode("Preparing component…"),
+      ),
       new SelectionNode("P").append(first, new SelectionNode("EM").append(textNode("cafe\u0301"))),
       new SelectionNode("BUTTON").append(textNode("Copy")),
       new SelectionNode("SPAN", "", { hidden: "" }).append(textNode("Hidden")),

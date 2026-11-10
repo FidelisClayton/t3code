@@ -1,0 +1,170 @@
+.markdown-recap {
+  container-type: inline-size;
+  color: color-mix(in oklch, var(--foreground) 90%, transparent);
+  font-size: 14px;
+  line-height: 1.625;
+  overflow-wrap: anywhere;
+}
+.markdown-recap .markdown-recap-lead {
+  margin: 0;
+  margin-block-end: 0.65rem;
+  text-wrap: pretty;
+}
+.markdown-recap-rows {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr) max-content;
+  column-gap: 12px;
+}
+.markdown-recap-row {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
+  align-items: baseline;
+  padding-block: 0.3rem;
+  border-block-start: 1px solid var(--border);
+}
+.markdown-recap-row:last-child {
+  border-block-end: 1px solid var(--border);
+}
+.markdown-recap-label {
+  font-variant-numeric: tabular-nums;
+}
+.markdown-recap-next {
+  color: var(--muted-foreground);
+}
+.markdown-recap .markdown-recap-sequence {
+  grid-column: 2 / -1;
+  margin: 0;
+}
+.markdown-recap-sequence .markdown-reference-label {
+  white-space: nowrap;
+}
+.markdown-recap details {
+  margin: 0;
+  min-inline-size: 0;
+}
+.markdown-recap summary {
+  cursor: pointer;
+  list-style: none;
+  border-radius: 0.25rem;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+.markdown-recap summary::-webkit-details-marker {
+  display: none;
+}
+.markdown-recap summary::after {
+  content: "";
+  display: inline-block;
+  inline-size: 0.38em;
+  block-size: 0.38em;
+  margin-inline-start: 0.55em;
+  border: solid var(--muted-foreground);
+  border-width: 0 1.5px 1.5px 0;
+  rotate: 45deg;
+  translate: 0 -0.18em;
+}
+.markdown-recap details[open] > summary::after {
+  rotate: 225deg;
+  translate: 0 0.08em;
+}
+.markdown-recap summary:active {
+  background: var(--accent);
+}
+.markdown-recap summary:focus-visible,
+.markdown-recap-work:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 1px;
+}
+.markdown-recap-details {
+  padding-block: 0.2rem 0.3rem;
+  color: color-mix(in oklch, var(--foreground) 80%, transparent);
+}
+.markdown-recap-marker {
+  display: inline-block;
+  box-sizing: border-box;
+  inline-size: 0.6rem;
+  block-size: 0.6rem;
+  margin-inline-end: 0.45em;
+  position: relative;
+  inset-block-start: -0.03em;
+}
+.markdown-recap-marker.running {
+  border: 1.5px solid light-dark(oklch(0.5 0.15 255), oklch(0.78 0.11 255));
+  border-radius: 50%;
+}
+.markdown-recap-marker.building {
+  background: light-dark(oklch(0.56 0.12 70), oklch(0.8 0.12 80));
+  rotate: 45deg;
+  scale: 0.85;
+}
+.markdown-recap-marker.next {
+  border: 1.5px dashed var(--muted-foreground);
+  border-radius: 50%;
+}
+.chat-markdown .markdown-recap a.markdown-recap-work {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3em;
+  align-self: baseline;
+  justify-self: end;
+  padding: 0.1rem 0.3rem;
+  margin-inline: -0.3rem 0;
+  border-radius: 0.25rem;
+  color: var(--muted-foreground);
+  font-size: 13px;
+  line-height: 1.5;
+  text-decoration: none;
+  white-space: nowrap;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+.markdown-recap-work svg {
+  inline-size: 13px;
+  block-size: 13px;
+  flex: none;
+}
+.chat-markdown .markdown-recap a.markdown-recap-work:active {
+  background: var(--accent);
+  color: var(--foreground);
+}
+@media (hover: hover) and (pointer: fine) {
+  .markdown-recap summary:hover {
+    text-decoration: underline dotted;
+    text-decoration-color: var(--muted-foreground);
+    text-underline-offset: 3px;
+  }
+  .chat-markdown .markdown-recap a.markdown-recap-work:hover {
+    color: var(--foreground);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+}
+@media (pointer: coarse) {
+  .markdown-recap summary {
+    padding-block: 0.2rem;
+  }
+  .chat-markdown .markdown-recap a.markdown-recap-work {
+    padding-block: 0.4rem;
+  }
+}
+@container (max-width: 30rem) {
+  .markdown-recap-rows {
+    grid-template-columns: max-content minmax(0, 1fr);
+  }
+  .markdown-recap .markdown-recap-sequence {
+    grid-column: 2;
+  }
+  .chat-markdown .markdown-recap a.markdown-recap-work {
+    grid-column: 2;
+    grid-row: 2;
+    justify-self: start;
+    align-self: start;
+    margin-block-start: -0.1rem;
+  }
+}
+@media (forced-colors: active) {
+  .markdown-recap-marker.building {
+    background: CanvasText;
+  }
+}

@@ -40,6 +40,35 @@ async function reloadRightPanelStore() {
 }
 
 describe("rightPanelStore", () => {
+  it("keeps Run singleton, scoped, and reopenable after closing", async () => {
+    const store = useRightPanelStore.getState();
+    store.open(refA, "run");
+    store.open(refA, "run");
+    expect(
+      selectThreadRightPanelState(useRightPanelStore.getState().byThreadKey, refA).surfaces,
+    ).toEqual([{ id: "run", kind: "run" }]);
+    expect(
+      selectThreadRightPanelState(useRightPanelStore.getState().byThreadKey, refB).surfaces,
+    ).toEqual([]);
+    const { storage, name, version } = useRightPanelStore.persist.getOptions();
+    const persisted = await storage!.getItem(name!);
+    await storage!.setItem(name!, { ...persisted!, version: version! - 1 });
+    await reloadRightPanelStore();
+    expect(selectActiveRightPanel(useRightPanelStore.getState().byThreadKey, refA)).toBe("run");
+    store.closeSurface(refA, "run");
+    const closed = useClosedViewStore.getState().entries[0];
+    expect(closed).toBeDefined();
+    expect(
+      await reopenClosedView(closed!, {
+        workspaceAvailable: false,
+        openPreview: () => {
+          throw new Error("Run must not open a browser");
+        },
+      }),
+    ).toBe(true);
+    expect(selectActiveRightPanel(useRightPanelStore.getState().byThreadKey, refA)).toBe("run");
+  });
+
   it("opens a hosted side chat's panel actions in its parent's panel until unhosted", () => {
     const store = useRightPanelStore.getState();
     const unhost = hostRightPanel(refB, refA);

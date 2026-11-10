@@ -1,3 +1,4 @@
+import { isPendingMarkdownComponent } from "@t3tools/shared/markdownCustomFence";
 import type { ResponseStreamingMode } from "@t3tools/contracts";
 import type * as ProviderAdapter from "@t3tools/provider-core/server/ProviderAdapter";
 
@@ -12,8 +13,12 @@ const SECTION_TITLE_PATTERN = /^ {0,3}(?:#{1,6}(?:[ \t]|$)|\*\*(?:[^*]|\*(?!\*))
 const TOP_LEVEL_HEADING_PATTERN = /^#{1,6}(?:[ \t]|$)/;
 
 /** Emit terminated lines only, except partial list-start lookahead for tight lists. Hold section titles until content follows. */
-export function splitBufferedAssistantText(text: string): { ready: string; rest: string } {
-  let openFence: { marker: string; indent: number } | null = null;
+export function splitBufferedAssistantText(text: string): {
+  ready: string;
+  rest: string;
+  pendingComponentHeader?: string;
+} {
+  let openFence: { marker: string; indent: number; headerEnd?: number } | null = null;
   let boundary = -1;
   let lineStart = 0;
   let titleAwaitingContent = false;
@@ -38,7 +43,14 @@ export function splitBufferedAssistantText(text: string): { ready: string; rest:
       const indent = fenceMatch[1]!.length;
       const marker = fenceMatch[2]!;
       if (openFence === null) {
-        openFence = { marker, indent };
+        const info = line.slice(indent + marker.length).trim();
+        const language = info.split(/[ \t]/, 1)[0] ?? "";
+        const meta = info.slice(language.length).trim() || undefined;
+        openFence = {
+          marker,
+          indent,
+          ...(isPendingMarkdownComponent(language, meta) ? { headerEnd: newline + 1 } : {}),
+        };
         titleAwaitingContent = false;
       } else if (
         marker[0] === openFence.marker[0] &&
@@ -62,10 +74,13 @@ export function splitBufferedAssistantText(text: string): { ready: string; rest:
     }
     lineStart = newline + 1;
   }
-  if (boundary === -1) {
-    return { ready: "", rest: text };
-  }
-  return { ready: text.slice(0, boundary), rest: text.slice(boundary) };
+  return {
+    ready: boundary === -1 ? "" : text.slice(0, boundary),
+    rest: boundary === -1 ? text : text.slice(boundary),
+    ...(openFence?.headerEnd === undefined
+      ? {}
+      : { pendingComponentHeader: text.slice(0, openFence.headerEnd) }),
+  };
 }
 
 export function makeAssistantStreamingFilter(mode: ResponseStreamingMode) {
@@ -96,7 +111,12 @@ export function makeAssistantStreamingFilter(mode: ResponseStreamingMode) {
     if (mode === "turn") return null;
     const previous = delivered.get(key);
     if (previous && now - previous.at < 400) return null;
-    const { ready } = splitBufferedAssistantText(message.text);
+    const buffered = splitBufferedAssistantText(message.text);
+    const ready =
+      event.type === "message.updated" ||
+      (event.type === "turn_item.updated" && event.turnItem.type === "assistant_message")
+        ? (buffered.pendingComponentHeader ?? buffered.ready)
+        : buffered.ready;
     if (!ready || ready === previous?.text) return null;
     delivered.set(key, { text: ready, at: now });
     if (event.type === "message.updated")

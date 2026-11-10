@@ -34,8 +34,9 @@ export function findAssistantCitationSourceAnchor(
   return range ? { source, range, viewport } : null;
 }
 
-const CONTROL_SELECTOR = "button, input, textarea, select, [role=button], [contenteditable]";
-const EXCLUDED_SELECTOR = `${CONTROL_SELECTOR}, [hidden], [aria-hidden=true], script, style, template, noscript, svg`;
+const CONTROL_SELECTOR =
+  "button:not([data-choice-message]), input, textarea, select, [role=button]:not([data-choice-message]), [contenteditable]";
+const EXCLUDED_SELECTOR = `${CONTROL_SELECTOR}, [data-assistant-citation-ignore], [hidden], [aria-hidden=true], script, style, template, noscript, svg`;
 const BLOCK_SELECTOR =
   "address, article, aside, blockquote, dd, div, dl, dt, figcaption, figure, footer, h1, h2, h3, h4, h5, h6, header, hr, li, main, nav, ol, p, pre, section, table, td, th, tr, ul";
 
@@ -214,7 +215,14 @@ export function captureAssistantTextSelection(
   selection: Selection | null,
 ): { source: HTMLElement; selector: AssistantTextSelector; range: Range } | null {
   if (selection === null || selection.isCollapsed || selection.rangeCount !== 1) return null;
-  const range = selection.getRangeAt(0).cloneRange();
+  return captureAssistantTextRange(viewport, selection.getRangeAt(0));
+}
+
+export function captureAssistantTextRange(
+  viewport: HTMLElement,
+  sourceRange: Range,
+): { source: HTMLElement; selector: AssistantTextSelector; range: Range } | null {
+  const range = sourceRange.cloneRange();
   const first = selectedTextBoundary(range, range.commonAncestorContainer, false);
   const last = selectedTextBoundary(range, range.commonAncestorContainer, true);
   if (first === null || last === null) return null;

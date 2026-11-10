@@ -9,6 +9,7 @@ import {
   resolveThreadSwitchTimeline,
   timelineHasEphemeralPreviewUrls,
 } from "../ChatView.logic";
+import { MarkdownReferenceProvider } from "./custom-blocks/MarkdownReferenceScope";
 import { MessagesTimeline } from "./MessagesTimeline";
 
 /**
@@ -54,5 +55,14 @@ export function ThreadTimeline({
     }
     rememberReadyThreadTimeline({ threadKey: activeThreadKey, entries });
   }, [activeThreadKey, detailLoading, entries]);
-  return <MessagesTimeline {...timelineProps} timelineEntries={displayedEntries} />;
+  const referenceMessages = displayedEntries.flatMap((entry) =>
+    entry.kind === "message" && entry.message.role === "assistant"
+      ? [{ id: entry.message.id, text: entry.message.text, revision: entry.message.updatedAt }]
+      : [],
+  );
+  return (
+    <MarkdownReferenceProvider key={activeThreadKey} messages={referenceMessages}>
+      <MessagesTimeline {...timelineProps} timelineEntries={displayedEntries} />
+    </MarkdownReferenceProvider>
+  );
 }

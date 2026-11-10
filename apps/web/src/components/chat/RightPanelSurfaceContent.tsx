@@ -10,6 +10,7 @@ import type {
 } from "@t3tools/contracts";
 import { scopedThreadKey } from "@t3tools/client-runtime/environment";
 import { lazy, Suspense } from "react";
+import { RunPanel } from "../run-panel/RunPanel";
 import SideChatPane from "./SideChatPane";
 import type { ComposerImageAttachment, DraftId } from "../../composerDraftStore";
 import type { ShortcutMatchContext } from "../../keybindings";
@@ -73,6 +74,7 @@ export function RightPanelSurfaceContent(props: {
     annotation: PreviewAnnotationPayload,
     image: ComposerImageAttachment | null,
   ) => void;
+  readonly onRespondInChat: () => void;
   readonly onCloseSurface: (surface: RightPanelSurface) => void;
   readonly terminal: RightPanelTerminalProps;
   readonly pullRequest: RightPanelPullRequestProps;
@@ -82,6 +84,14 @@ export function RightPanelSurfaceContent(props: {
   const { surface, threadRef, visible, onCloseSurface } = props;
   if (surface === null) return null;
   switch (surface.kind) {
+    case "run":
+      return visible ? (
+        <RunPanel
+          key={scopedThreadKey(threadRef)}
+          threadRef={threadRef}
+          onRespondInChat={props.onRespondInChat}
+        />
+      ) : null;
     case "preview":
       return (
         <Suspense fallback={null}>

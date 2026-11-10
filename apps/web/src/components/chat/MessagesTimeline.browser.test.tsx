@@ -653,14 +653,40 @@ const CITATION_REQUEST = {
 } satisfies NonNullable<TimelineProps["citationRequest"]>;
 
 describe("MessagesTimeline citations", () => {
-  it("lands a citation present at mount under StrictMode", async () => {
-    await using _screen = await renderElement(
+  it.each([
+    { name: "paragraph", text: "the cited answer", details: false },
+    {
+      name: "closed recap details",
+      text:
+        "```recap\n" +
+        JSON.stringify({
+          lead: "Current work",
+          items: [
+            {
+              label: "Task",
+              status: "running",
+              summary: "Cited detail",
+              details: "Use [the cited answer](choices:detail/a).",
+            },
+            {
+              label: "Other",
+              status: "building",
+              summary: "Unrelated detail",
+              details: "Keep this closed.",
+            },
+          ],
+        }) +
+        "\n```",
+      details: true,
+    },
+  ])("lands a $name citation present at mount under StrictMode", async ({ text, details }) => {
+    await using screen = await renderElement(
       <StrictMode>
         <MessagesTimeline
           {...baseProps()}
           timelineEntries={[
             message("A question", {}, "question"),
-            message("the cited answer", { role: "assistant" }, "cited"),
+            message(text, { role: "assistant" }, "cited"),
           ]}
           citationRequest={CITATION_REQUEST}
           citationHistory={{ _tag: "found" }}
@@ -675,6 +701,8 @@ describe("MessagesTimeline citations", () => {
         "the cited answer",
       ),
     );
+    await expect.element(screen.getByText("the cited answer", { exact: true })).toBeVisible();
+    if (details) expect(screen.container.querySelectorAll("details[open]")).toHaveLength(1);
   });
 
   it("opens the superseded attempt that folds the cited response", async () => {

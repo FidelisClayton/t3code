@@ -9,6 +9,7 @@ type ChatRightPanelProps = Omit<RightPanelTabsProps, "mode" | "inlineSize" | "ma
   readonly widthStorageKey: string;
   readonly sheetAnimationDurationMs: number;
   readonly onCloseSheet: () => void;
+  readonly onCloseFocus?: (() => boolean | HTMLElement | null | void) | undefined;
 };
 
 /**
@@ -23,6 +24,7 @@ export function ChatRightPanel(props: ChatRightPanelProps) {
     widthStorageKey,
     sheetAnimationDurationMs,
     onCloseSheet,
+    onCloseFocus,
     maximized,
     layoutControls,
     ...tabs
@@ -39,6 +41,7 @@ export function ChatRightPanel(props: ChatRightPanelProps) {
       animationDurationMs={sheetAnimationDurationMs}
       open={tabs.open === true}
       onClose={onCloseSheet}
+      onCloseFocus={onCloseFocus}
     >
       <RightPanelTabs
         {...tabs}

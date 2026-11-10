@@ -3589,6 +3589,8 @@ export const ORCHESTRATION_V2_WS_METHODS = {
   stopWorkflow: "orchestration.stopWorkflow",
   forceStopThread: "orchestration.forceStopThread",
   getTurnItem: "orchestration.getTurnItem",
+  getMarkdownReference: "orchestration.getMarkdownReference",
+  getCreatedThreads: "orchestration.getCreatedThreads",
   launchThread: "orchestration.launchThread",
   subscribeShell: "orchestration.subscribeShell",
   subscribeThread: "orchestration.subscribeThread",
@@ -4112,6 +4114,43 @@ export class OrchestrationWorkflowFileError extends Schema.TaggedError<Orchestra
   }
 }
 
+const MarkdownReferenceId = Schema.String.check(
+  Schema.isPattern(/^[a-z][a-z0-9-]{0,63}\/[A-Za-z0-9][A-Za-z0-9._-]{0,63}(?![\s\S])/),
+);
+
+export const MarkdownReferenceDefinition = Schema.Struct({
+  id: MarkdownReferenceId,
+  title: Schema.String.check(Schema.isMinLength(1), Schema.isMaxLength(256)),
+  summary: Schema.optional(Schema.String.check(Schema.isMaxLength(1024))),
+  body: Schema.String.check(Schema.isPattern(/\S/), Schema.isMaxLength(32768)),
+});
+export type MarkdownReferenceDefinition = typeof MarkdownReferenceDefinition.Type;
+
+export const OrchestrationV2GetMarkdownReferenceInput = Schema.Struct({
+  threadId: ThreadId,
+  id: MarkdownReferenceId,
+});
+export type OrchestrationV2GetMarkdownReferenceInput =
+  typeof OrchestrationV2GetMarkdownReferenceInput.Type;
+
+export const OrchestrationV2GetMarkdownReferenceResult = Schema.Struct({
+  reference: Schema.NullOr(MarkdownReferenceDefinition),
+});
+export type OrchestrationV2GetMarkdownReferenceResult =
+  typeof OrchestrationV2GetMarkdownReferenceResult.Type;
+
+export const OrchestrationV2GetCreatedThreadsInput = Schema.Struct({
+  threadId: ThreadId,
+});
+export type OrchestrationV2GetCreatedThreadsInput =
+  typeof OrchestrationV2GetCreatedThreadsInput.Type;
+
+export const OrchestrationV2GetCreatedThreadsResult = Schema.Struct({
+  threads: Schema.Array(Schema.Struct({ threadId: ThreadId, runId: Schema.NullOr(RunId) })),
+});
+export type OrchestrationV2GetCreatedThreadsResult =
+  typeof OrchestrationV2GetCreatedThreadsResult.Type;
+
 export const OrchestrationV2GetTurnItemInput = Schema.Struct({
   threadId: ThreadId,
   itemId: TurnItemId,
@@ -4265,6 +4304,14 @@ export const OrchestrationV2RpcSchemas = {
   getNativeChildWork: {
     input: OrchestrationV2GetNativeChildWorkInput,
     output: OrchestrationV2GetNativeChildWorkResult,
+  },
+  getMarkdownReference: {
+    input: OrchestrationV2GetMarkdownReferenceInput,
+    output: OrchestrationV2GetMarkdownReferenceResult,
+  },
+  getCreatedThreads: {
+    input: OrchestrationV2GetCreatedThreadsInput,
+    output: OrchestrationV2GetCreatedThreadsResult,
   },
   getTurnItem: {
     input: OrchestrationV2GetTurnItemInput,

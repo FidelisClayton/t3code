@@ -3,6 +3,7 @@ import { type RunId } from "@t3tools/contracts";
 import { canForkProjectedAssistantItem } from "@t3tools/client-runtime/state/thread-workflows";
 import { memo, use, useState } from "react";
 import { type ChatMessage, type TurnDiffSummary } from "../../types";
+import { useStreamedMarkdownReferences } from "./custom-blocks/MarkdownReferenceScope";
 import ChatMarkdown from "../ChatMarkdown";
 import { GitForkIcon } from "lucide-react";
 import { Button } from "../ui/button";
@@ -32,6 +33,7 @@ export function AssistantTimelineRow({ row }: { row: Extract<TimelineRow, { kind
     row.projectedItem?.item.id,
   );
   const text = liveText ?? row.message.text;
+  useStreamedMarkdownReferences(row.message.id, text);
   const messageText = text || (row.message.streaming ? "" : "(empty response)");
 
   return (
@@ -47,7 +49,10 @@ export function AssistantTimelineRow({ row }: { row: Extract<TimelineRow, { kind
             listRef={ctx.listRef}
           >
             <ChatMarkdown
+              key={row.message.id}
               text={messageText}
+              messageId={row.message.id}
+              onChoiceDraftUpdate={ctx.onChoiceDraftUpdate}
               cwd={ctx.markdownCwd}
               threadRef={ctx.threadRef ?? undefined}
               isStreaming={Boolean(row.message.streaming)}
@@ -57,6 +62,8 @@ export function AssistantTimelineRow({ row }: { row: Extract<TimelineRow, { kind
               onUseArtifactTemplate={ctx.onUseArtifactTemplate}
               onRunShellCommand={ctx.onRunShellCommand}
               onImageExpand={ctx.onImageExpand}
+              customBlocks
+              onSendAppMessage={ctx.onSendAppMessage}
             />
           </AssistantCitationSource>
         </div>

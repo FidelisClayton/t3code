@@ -1,4 +1,8 @@
 import type {
+  OrchestrationV2GetCreatedThreadsInput,
+  OrchestrationV2GetCreatedThreadsResult,
+  OrchestrationV2GetMarkdownReferenceInput,
+  OrchestrationV2GetMarkdownReferenceResult,
   OrchestrationV2SearchThreadInput,
   OrchestrationV2SearchThreadResult,
 } from "@t3tools/contracts";
@@ -42,6 +46,7 @@ import {
   type TurnItemId,
 } from "@t3tools/contracts";
 import { delegatedTaskProgress } from "@t3tools/provider-core/server/subagentProjection";
+import { extractMarkdownReferenceDefinitions } from "@t3tools/shared/markdownReferences";
 import { threadTranscriptHeader } from "@t3tools/shared/threadTranscript";
 import { AgentScope } from "@t3tools/shared/AgentScope";
 import * as Clock from "effect/Clock";
@@ -376,6 +381,12 @@ export interface ThreadManagementServiceShape {
   readonly getThreadHistoryPage: Orchestrator.OrchestratorV2["Service"]["getThreadHistoryPage"];
   readonly getTimelinePage: Orchestrator.OrchestratorV2["Service"]["getTimelinePage"];
   readonly getMessageCount: Orchestrator.OrchestratorV2["Service"]["getMessageCount"];
+  readonly getMarkdownReference: (
+    input: OrchestrationV2GetMarkdownReferenceInput,
+  ) => Effect.Effect<OrchestrationV2GetMarkdownReferenceResult, Orchestrator.OrchestratorV2Error>;
+  readonly getCreatedThreads: (
+    input: OrchestrationV2GetCreatedThreadsInput,
+  ) => Effect.Effect<OrchestrationV2GetCreatedThreadsResult, Orchestrator.OrchestratorV2Error>;
   readonly getTurnItem: (input: {
     readonly threadId: ThreadId;
     readonly itemId: TurnItemId;
@@ -1502,6 +1513,41 @@ const make = Effect.gen(function* () {
       return ensureProjectionTranscript(threadId).pipe(
         Effect.andThen(orchestrator.getMessageCount(threadId)),
       );
+    }),
+    getMarkdownReference: Effect.fn("ThreadManagementService.getMarkdownReference")(
+      function* (input) {
+        const projection = yield* getThreadProjection(input.threadId);
+        for (let index = projection.visibleTurnItems.length - 1; index >= 0; index--) {
+          const item = projection.visibleTurnItems[index]!.item;
+          if (item.type !== "assistant_message" || !item.text.includes("reference")) continue;
+          const definitions = extractMarkdownReferenceDefinitions(item.text);
+          const reference = definitions.findLast((definition) => definition.id === input.id);
+          if (reference) return { reference };
+        }
+        return { reference: null };
+      },
+    ),
+    getCreatedThreads: Effect.fn("ThreadManagementService.getCreatedThreads")(function* (input) {
+      yield* ensureProjectionTranscript(input.threadId);
+      const { runs, turnItems } = yield* orchestrator.getThreadRecords(
+        input.threadId,
+        ["runs", "turnItems"],
+        { turnItemTypes: ["thread_created"] },
+      );
+      const rolledBackRuns = new Set(
+        runs.filter((run) => run.status === "rolled_back").map((run) => run.id),
+      );
+      const threads = new Map<ThreadId, { threadId: ThreadId; runId: RunId | null }>();
+      for (const item of turnItems) {
+        if (
+          item.type !== "thread_created" ||
+          (item.runId !== null && rolledBackRuns.has(item.runId))
+        ) {
+          continue;
+        }
+        threads.set(item.targetThreadId, { threadId: item.targetThreadId, runId: item.runId });
+      }
+      return { threads: [...threads.values()] };
     }),
     getTurnItem: Effect.fn("ThreadManagementService.getTurnItem")(function (input) {
       return ensureProjectionTranscript(input.threadId).pipe(

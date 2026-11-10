@@ -36,6 +36,7 @@ import { restrictToFirstScrollableAncestor, restrictToHorizontalAxis } from "@dn
 import { horizontalListSortingStrategy, SortableContext, useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import {
+  ListTodo,
   Smartphone,
   ChevronDown,
   ChevronLeft,
@@ -137,6 +138,7 @@ export interface RightPanelTabsProps {
   onAddBrowserInProfile: (profileId: string) => void;
   onAddTerminal: () => void;
   onAddDiff: () => void;
+  onAddRun?: (() => void) | undefined;
   onAddFiles: () => void;
   onAddPullRequest: () => void;
   onAddPullRequests: () => void;
@@ -318,6 +320,7 @@ function RightPanelEmptyState(props: {
   browserProfiles: ReadonlyArray<{ readonly id: string; readonly name: string }>;
   onAddTerminal: () => void;
   onAddDiff: () => void;
+  onAddRun?: (() => void) | undefined;
   onAddFiles: () => void;
   onAddPullRequest: () => void;
   onAddPullRequests: () => void;
@@ -337,6 +340,18 @@ function RightPanelEmptyState(props: {
   const [highlight, setHighlight] = useState(-1);
 
   const actions = [
+    ...(props.onAddRun
+      ? [
+          {
+            label: "Run",
+            icon: ListTodo,
+            shortcut: "R",
+            available: true,
+            disabledReason: "",
+            onClick: props.onAddRun,
+          },
+        ]
+      : []),
     {
       label: "Browser",
       icon: Globe2,
@@ -573,6 +588,8 @@ function surfaceTitle(
   terminalLabelsById: ReadonlyMap<string, string>,
 ): string {
   switch (surface.kind) {
+    case "run":
+      return "Run";
     case "diff":
       return "Diff";
     case "files":
@@ -657,6 +674,8 @@ function SurfaceIcon({
   switch (surface.kind) {
     case "preview":
       return <PreviewFavicon capturedUrl={previewCapturedUrl} url={previewUrl} />;
+    case "run":
+      return <ListTodo className="size-3 shrink-0" />;
     case "diff":
       return <FileDiff className="size-3 shrink-0" />;
     case "files":
@@ -1091,6 +1110,18 @@ export function RightPanelTabs(props: RightPanelTabsProps) {
   };
 
   const addSurfaceActions = [
+    ...(props.onAddRun
+      ? [
+          {
+            label: "Run",
+            icon: ListTodo,
+            shortcut: "R",
+            available: true,
+            disabledReason: "",
+            onClick: props.onAddRun,
+          },
+        ]
+      : []),
     {
       label: "Browser",
       icon: Globe2,
@@ -1529,6 +1560,7 @@ export function RightPanelTabs(props: RightPanelTabsProps) {
             browserProfiles={browserProfiles}
             onAddTerminal={props.onAddTerminal}
             onAddDiff={props.onAddDiff}
+            onAddRun={props.onAddRun}
             onAddFiles={props.onAddFiles}
             onAddPullRequest={props.onAddPullRequest}
             onAddPullRequests={props.onAddPullRequests}

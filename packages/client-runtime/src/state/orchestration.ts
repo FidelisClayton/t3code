@@ -141,6 +141,18 @@ export function createOrchestrationEnvironmentAtoms<R, E>(
       label: "environment-data:orchestration:force-stop-thread",
       tag: ORCHESTRATION_V2_WS_METHODS.forceStopThread,
     }),
+    markdownReference: createEnvironmentRpcQueryAtomFamily(runtime, {
+      label: "environment-data:orchestration:markdown-reference",
+      tag: ORCHESTRATION_V2_WS_METHODS.getMarkdownReference,
+      staleTimeMs: 0,
+      idleTtlMs: 0,
+    }),
+    createdThreads: createEnvironmentRpcQueryAtomFamily(runtime, {
+      label: "environment-data:orchestration:created-threads",
+      tag: ORCHESTRATION_V2_WS_METHODS.getCreatedThreads,
+      staleTimeMs: 0,
+      idleTtlMs: 0,
+    }),
     turnItem: createEnvironmentRpcQueryAtomFamily(runtime, {
       label: "environment-data:orchestration:turn-item",
       tag: ORCHESTRATION_V2_WS_METHODS.getTurnItem,

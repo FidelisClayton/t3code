@@ -1,0 +1,161 @@
+.run-panel {
+  flex: 1;
+  min-block-size: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  padding: 20px 16px;
+  font-size: 13px;
+}
+.run-panel-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-block-end: 16px;
+}
+.run-panel-heading h2 {
+  font-size: 16px;
+  font-weight: 600;
+}
+.run-panel-secondary {
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+.run-panel-notice {
+  padding-block-end: 16px;
+  color: var(--muted-foreground);
+}
+.run-panel-calm {
+  padding: 12px;
+  background: var(--accent);
+  border-radius: 12px;
+}
+.run-panel-section {
+  margin-block-start: 24px;
+}
+.run-panel-section h3,
+.run-panel-section summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  margin-block-end: 8px;
+}
+.run-panel-section summary {
+  display: list-item;
+  cursor: pointer;
+  padding-block: 4px;
+}
+.run-panel-count {
+  color: var(--muted-foreground);
+  font-variant-numeric: tabular-nums;
+  font-weight: 400;
+  margin-inline-start: 4px;
+}
+.run-panel-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  list-style: none;
+  padding: 0;
+}
+.run-panel-rows > li {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow-wrap: anywhere;
+}
+.run-panel-rows[data-group="attention"] > li {
+  border-color: color-mix(in oklch, var(--warning) 45%, var(--border));
+}
+.run-panel-row {
+  display: flex;
+  align-items: start;
+  gap: 10px;
+  inline-size: 100%;
+  padding: 12px;
+  text-align: start;
+  cursor: pointer;
+  border-radius: 12px;
+}
+.run-panel-row > svg {
+  flex: none;
+  margin-block-start: 3px;
+  color: var(--muted-foreground);
+}
+.run-panel-row-copy {
+  display: flex;
+  flex: 1;
+  min-inline-size: 0;
+  flex-direction: column;
+  gap: 4px;
+}
+.run-panel-title {
+  font-weight: 500;
+}
+.run-panel-progress {
+  font-size: 12px;
+  white-space: pre-wrap;
+}
+.run-panel-row[aria-expanded="true"] {
+  background: var(--accent);
+}
+.run-panel-row[aria-expanded="true"] > svg:last-child {
+  rotate: 90deg;
+}
+.run-panel-row:focus-visible,
+.run-panel-section summary:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+.run-panel-row:active {
+  background: var(--accent);
+}
+@media (hover: hover) and (pointer: fine) {
+  .run-panel-row:hover {
+    background: var(--accent);
+  }
+}
+.run-panel-detail {
+  padding: 4px 12px 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: start;
+  gap: 12px;
+}
+.run-panel-detail-section {
+  inline-size: 100%;
+}
+.run-panel-detail h4 {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted-foreground);
+  margin-block-end: 4px;
+}
+.run-panel-detail p,
+.run-panel-plan-text {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.run-panel-detail .run-panel-section {
+  inline-size: 100%;
+  margin-block-start: 0;
+}
+.run-panel-plan {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 0;
+  list-style: none;
+}
+.run-panel-plan li {
+  display: flex;
+  gap: 8px;
+  overflow-wrap: anywhere;
+}
+.run-panel-plan li > span:first-child {
+  flex: none;
+  padding-block-start: 3px;
+  color: var(--muted-foreground);
+}

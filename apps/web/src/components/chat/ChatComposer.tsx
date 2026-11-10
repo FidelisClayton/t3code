@@ -1,3 +1,7 @@
+import {
+  updateMarkdownChoiceDraft,
+  type MarkdownChoiceDraftUpdate,
+} from "./custom-blocks/markdownChoiceDraft";
 import { useComposerTypingGuard } from "./useComposerTypingGuard";
 import { insertAttachmentReferencesForDraft } from "./composerAttachmentReferences";
 import { DESKTOP_PASTE_AS_TEXT_EVENT } from "../../lib/desktopPasteAsText";
@@ -286,6 +290,7 @@ function consumePasteAsTextShortcut(deadline: { current: number }): boolean {
 }
 
 export interface ChatComposerHandle {
+  updateChoiceDraft: (update: MarkdownChoiceDraftUpdate) => boolean;
   focusAtEnd: () => void;
   focusAt: (cursor: number) => void;
   addDroppedFiles: (files: File[]) => void;
@@ -2856,6 +2861,26 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
         focusComposer();
         return true;
       },
+      updateChoiceDraft: (update) => {
+        if (
+          update.source.environmentId !== environmentId ||
+          update.source.threadId !== activeThreadId ||
+          pendingUserInputs.length > 0 ||
+          activePendingIsResponding ||
+          projectSelectionRequired ||
+          !composerEditorRef.current
+        )
+          return false;
+        const current = promptRef.current;
+        const next = updateMarkdownChoiceDraft(current, update);
+        return (
+          next === current ||
+          applyPromptReplacementStable(0, current.length, next, {
+            expectedText: current,
+            focusEditorAfterReplace: false,
+          })
+        );
+      },
       citeAssistantText: (citation, sourceAnchor) =>
         insertComposerTextStable(
           formatAssistantCitationForComposer(citation, citation.comment),
@@ -3031,6 +3056,8 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
     }),
     [
       activeThread,
+      activeThreadId,
+      activePendingIsResponding,
       addComposerAttachments,
       addComposerFoldersStable,
       foldPastedText,

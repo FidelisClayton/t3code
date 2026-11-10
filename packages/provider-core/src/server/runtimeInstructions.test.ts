@@ -3,16 +3,26 @@ import { assert, describe, it } from "@effect/vitest";
 import { buildRuntimeInstructions } from "./runtimeInstructions.ts";
 
 describe("buildRuntimeInstructions", () => {
-  it("leaves PR linking to a session that already carries it, and keeps runtime identity", () => {
-    const instructions = buildRuntimeInstructions({
-      harness: "Antigravity",
-      model: "gemini-3.8-flash",
-      pullRequestLinking: false,
-    });
+  it.each([
+    { pullRequestLinking: undefined, chatMarkdown: undefined },
+    { pullRequestLinking: false, chatMarkdown: undefined },
+    { pullRequestLinking: undefined, chatMarkdown: false },
+    { pullRequestLinking: false, chatMarkdown: false },
+  ])(
+    "keeps runtime identity with PR linking $pullRequestLinking and chat guidance $chatMarkdown",
+    ({ pullRequestLinking, chatMarkdown }) => {
+      const instructions = buildRuntimeInstructions({
+        harness: "Antigravity",
+        model: "gemini-3.8-flash",
+        ...(pullRequestLinking === undefined ? {} : { pullRequestLinking }),
+        ...(chatMarkdown === undefined ? {} : { chatMarkdown }),
+      });
 
-    assert.include(instructions, "through the Antigravity harness, as gemini-3.8-flash.");
-    assert.notInclude(instructions, "<pull_request_linking>");
-  });
+      assert.include(instructions, "through the Antigravity harness, as gemini-3.8-flash.");
+      assert.lengthOf(instructions.split("## Chat components"), chatMarkdown === false ? 1 : 2);
+      assert.equal(instructions.includes("<pull_request_linking>"), pullRequestLinking !== false);
+    },
+  );
 
   it("links PRs the agent creates, takes over, or pushes to, and no others", () => {
     const instructions = buildRuntimeInstructions({ harness: "Codex" });

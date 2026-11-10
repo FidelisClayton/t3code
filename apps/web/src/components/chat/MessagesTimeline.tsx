@@ -1,3 +1,4 @@
+import type { MarkdownChoiceDraftUpdate } from "./custom-blocks/markdownChoiceDraft";
 import { threadEnvironment } from "../../state/threads";
 import { useAtomCommand } from "../../state/use-atom-command";
 import type { ToolCallDiffTarget } from "../../diffPanelStore";
@@ -279,6 +280,7 @@ interface MessagesTimelineProps {
   availableRevertTurnCounts?: ReadonlySet<number> | undefined;
   onRevertToTurnCount: (targetTurnCount: number, messageId: MessageId) => void;
   onUseArtifactTemplate?: (template: CodexArtifactTemplate) => void;
+  onChoiceDraftUpdate?: ((update: MarkdownChoiceDraftUpdate) => boolean) | undefined;
   onSendAppMessage?: (text: string) => Promise<void>;
   onRunShellCommand?: (command: string) => void;
   isRevertingCheckpoint: boolean;
@@ -378,6 +380,7 @@ const ConversationTimeline = memo(function ConversationTimeline({
   availableRevertTurnCounts,
   onRevertToTurnCount,
   onUseArtifactTemplate = NOOP_USE_ARTIFACT_TEMPLATE,
+  onChoiceDraftUpdate,
   onSendAppMessage,
   onRunShellCommand,
   isRevertingCheckpoint,
@@ -1028,6 +1031,7 @@ const ConversationTimeline = memo(function ConversationTimeline({
     onImageExpand,
     onFileOpen,
     onUseArtifactTemplate,
+    onChoiceDraftUpdate,
     onSendAppMessage,
     onAppFullscreenChange,
     onFileDownload,

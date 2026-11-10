@@ -7,6 +7,7 @@ export function RightPanelSheet(props: {
   children: ReactNode;
   open: boolean;
   onClose: () => void;
+  onCloseFocus?: (() => boolean | HTMLElement | null | void) | undefined;
 }) {
   return (
     <Sheet
@@ -18,6 +19,7 @@ export function RightPanelSheet(props: {
       }}
     >
       <SheetPopup
+        finalFocus={props.onCloseFocus}
         transitionDurationMs={props.animationDurationMs}
         side="right"
         showCloseButton={false}

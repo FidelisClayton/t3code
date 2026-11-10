@@ -16,6 +16,16 @@ describe("buildCodexAdditionalContext", () => {
       "keeps every entry within Codex's per-entry cap with tools %j",
       (availability) => {
         const context = buildCodexAdditionalContext(runtime, availability);
+        NodeAssert.equal(context.t3_code_markdown?.kind, "application");
+        NodeAssert.match(context.t3_code_markdown!.value, /## Chat components/);
+        NodeAssert.doesNotMatch(context.t3_code_runtime!.value, /## Chat components/);
+        NodeAssert.equal(
+          Object.values(context)
+            .map((entry) => entry.value)
+            .join("\n")
+            .split("## Chat components").length,
+          2,
+        );
 
         for (const [key, entry] of Object.entries(context)) {
           // Codex counts ceil(UTF-8 bytes / 4) tokens, excluding keys and wrappers.
