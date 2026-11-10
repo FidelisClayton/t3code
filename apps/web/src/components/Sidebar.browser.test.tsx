@@ -137,6 +137,7 @@ describe("Boring thread disclosure", () => {
       activeDraftThread: null,
       activeThread: null,
       defaultProjectRef: { environmentId: owner.environmentId, projectId: owner.id },
+      defaultProjectFallbackReady: true,
       handleNewThread: vi.fn(),
       routeDraftId: null,
       routeThreadRef: ref("Grandchild"),

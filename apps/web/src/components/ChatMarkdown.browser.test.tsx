@@ -860,7 +860,9 @@ describe("ChatMarkdown inline choices", () => {
     await expect
       .element(page.getByRole("textbox", { name: "Comment on selected text" }))
       .not.toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", { name: "Comment on Serial", exact: true }));
+    await userEvent.click(
+      screen.getByRole("button", { name: "Edit comment on Serial", exact: true }),
+    );
     await expect
       .element(page.getByRole("textbox", { name: "Comment on selected text" }))
       .toHaveValue("Keep this alternative");
