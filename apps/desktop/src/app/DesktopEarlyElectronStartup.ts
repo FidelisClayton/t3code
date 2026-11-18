@@ -1,4 +1,5 @@
 import { fromLenientJson } from "@t3tools/shared/schemaJson";
+import { forkAppId } from "@t3tools/shared/forkBuild";
 import * as Option from "effect/Option";
 import * as Schema from "effect/Schema";
 
@@ -20,18 +21,24 @@ interface EarlyDesktopSettingsInput {
   readonly homeDirectory: string;
   readonly joinPath: JoinPath;
   readonly readFileString: (path: string) => string;
+  readonly forkId?: string | undefined;
 }
 
 type EarlyLinuxElectronOptionsInput = EarlyDesktopSettingsInput;
 
 export interface EarlyLinuxElectronOptions {
   readonly isDevelopment: boolean;
+  readonly forkId: string | undefined;
   readonly linuxDesktopEntryName: string;
   readonly passwordStore: LinuxPasswordStoreSwitch | null;
 }
 
-export const resolveLinuxDesktopEntryName = (isDevelopment: boolean): string =>
-  isDevelopment ? "com.t3tools.T3Code.Development.desktop" : "com.t3tools.T3Code.desktop";
+export const resolveLinuxDesktopEntryName = (isDevelopment: boolean, forkId?: string): string =>
+  forkId
+    ? `${forkAppId(forkId)}.desktop`
+    : isDevelopment
+      ? "com.t3tools.T3Code.Development.desktop"
+      : "com.t3tools.T3Code.desktop";
 
 const trimNonEmpty = (value: string | undefined): string | null => {
   const trimmed = value?.trim();
@@ -52,12 +59,14 @@ function resolveEarlyDesktopSettingsPath(input: {
   readonly env: NodeJS.ProcessEnv;
   readonly homeDirectory: string;
   readonly joinPath: JoinPath;
+  readonly forkId?: string | undefined;
 }): string {
   const t3Home = Option.fromUndefinedOr(input.env.T3CODE_HOME);
   const baseDir = resolveDesktopBaseDir({
     homeDirectory: input.homeDirectory,
     joinPath: input.joinPath,
     t3Home,
+    forkId: input.forkId,
   });
   const stateDir = resolveDesktopStateDir({
     baseDir,
@@ -145,7 +154,8 @@ export function resolveEarlyLinuxElectronOptions(
   const isDevelopment = isDevelopmentEnvironment(input.env);
   return {
     isDevelopment,
-    linuxDesktopEntryName: resolveLinuxDesktopEntryName(isDevelopment),
+    forkId: input.forkId,
+    linuxDesktopEntryName: resolveLinuxDesktopEntryName(isDevelopment, input.forkId),
     passwordStore: resolveLinuxPasswordStoreSwitch({
       preference,
       env: input.env,

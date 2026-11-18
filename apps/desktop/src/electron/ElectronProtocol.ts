@@ -10,22 +10,24 @@ import * as Schedule from "effect/Schedule";
 import * as Schema from "effect/Schema";
 import * as Scope from "effect/Scope";
 
+import { forkScheme, resolveForkId } from "@t3tools/shared/forkBuild";
 import * as Electron from "electron";
 
 export const DESKTOP_HOST = "app";
 const DESKTOP_PRODUCTION_SCHEME = "t3code";
 const DESKTOP_DEVELOPMENT_SCHEME = "t3code-dev";
 
-export function getDesktopScheme(isDevelopment: boolean): string {
+export function getDesktopScheme(isDevelopment: boolean, forkId?: string): string {
+  if (forkId) return forkScheme(forkId);
   return isDevelopment ? DESKTOP_DEVELOPMENT_SCHEME : DESKTOP_PRODUCTION_SCHEME;
 }
 
-function getDesktopOrigin(isDevelopment: boolean): string {
-  return `${getDesktopScheme(isDevelopment)}://${DESKTOP_HOST}`;
+function getDesktopOrigin(isDevelopment: boolean, forkId?: string): string {
+  return `${getDesktopScheme(isDevelopment, forkId)}://${DESKTOP_HOST}`;
 }
 
-export function getDesktopUrl(isDevelopment: boolean): string {
-  return `${getDesktopOrigin(isDevelopment)}/`;
+export function getDesktopUrl(isDevelopment: boolean, forkId?: string): string {
+  return `${getDesktopOrigin(isDevelopment, forkId)}/`;
 }
 
 export class ElectronProtocolRegistrationError extends Schema.TaggedError<ElectronProtocolRegistrationError>()(
@@ -108,10 +110,10 @@ function withContentSecurityPolicy(response: Response, policy: string): Response
 }
 
 // Must run synchronously before Electron emits ready.
-function registerDesktopSchemePrivilegesSync(): void {
+function registerDesktopSchemePrivilegesSync(forkId: string | undefined): void {
   Electron.protocol.registerSchemesAsPrivileged([
     {
-      scheme: DESKTOP_PRODUCTION_SCHEME,
+      scheme: getDesktopScheme(false, forkId),
       privileges: {
         standard: true,
         secure: true,
@@ -122,22 +124,26 @@ function registerDesktopSchemePrivilegesSync(): void {
         codeCache: true,
       },
     },
-    {
-      scheme: DESKTOP_DEVELOPMENT_SCHEME,
-      privileges: {
-        standard: true,
-        secure: true,
-        supportFetchAPI: true,
-        corsEnabled: true,
-        stream: true,
-      },
-    },
+    ...(forkId
+      ? []
+      : [
+          {
+            scheme: DESKTOP_DEVELOPMENT_SCHEME,
+            privileges: {
+              standard: true,
+              secure: true,
+              supportFetchAPI: true,
+              corsEnabled: true,
+              stream: true,
+            },
+          },
+        ]),
   ]);
 }
 
-const registerDesktopSchemePrivileges = Effect.sync(registerDesktopSchemePrivilegesSync).pipe(
-  Effect.withSpan("desktop.electron.protocol.registerSchemePrivileges"),
-);
+const registerDesktopSchemePrivileges = Effect.sync(() =>
+  registerDesktopSchemePrivilegesSync(resolveForkId(Electron.app.getVersion())),
+).pipe(Effect.withSpan("desktop.electron.protocol.registerSchemePrivileges"));
 
 export const layerSchemePrivileges = Layer.effectDiscard(registerDesktopSchemePrivileges);
 

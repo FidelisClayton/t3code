@@ -183,7 +183,7 @@ const startLocalBackend = Effect.gen(function* () {
   const settings = yield* desktopSettings.get;
   const electronProtocol = yield* ElectronProtocol.ElectronProtocol;
   yield* electronProtocol.registerDesktopProtocol({
-    scheme: ElectronProtocol.getDesktopScheme(environment.isDevelopment),
+    scheme: ElectronProtocol.getDesktopScheme(environment.isDevelopment, environment.forkId),
     ...(environment.isDevelopment
       ? { targetOrigin: Option.getOrThrow(environment.devServerUrl) }
       : { assetDirectory: environment.clientAssetsDir }),
@@ -350,6 +350,7 @@ const startup = Effect.gen(function* () {
     environment.platform === "linux" && !hasCommandLinePasswordStore
       ? DesktopPreReadyPlatform.resolveEarlyLinuxElectronOptionsFromProcess(
           yield* HostProcess.HomeDirectory,
+          environment.forkId,
         )
       : preReadyElectronOptions.linux;
   if (linuxElectronOptions !== null && !hasCommandLinePasswordStore) {

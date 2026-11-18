@@ -15,6 +15,7 @@ import * as DesktopAppSettings from "../settings/DesktopAppSettings.ts";
 import * as DesktopConfig from "./DesktopConfig.ts";
 import { resolveLinuxDesktopEntryName } from "./DesktopEarlyElectronStartup.ts";
 import { resolveDesktopBaseDir, resolveDesktopStateDir } from "./DesktopStatePaths.ts";
+import { forkAppId, forkLabel, resolveForkId } from "@t3tools/shared/forkBuild";
 import { isNightlyDesktopVersion } from "../updates/updateChannels.ts";
 import type { OtlpProtocol } from "@t3tools/shared/observability";
 
@@ -40,6 +41,7 @@ export class DesktopEnvironment extends Context.Service<
     readonly isPackaged: boolean;
     readonly isDevelopment: boolean;
     readonly appVersion: string;
+    readonly forkId: string | undefined;
     readonly appPath: string;
     readonly resourcesPath: string;
     readonly homeDirectory: string;
@@ -103,6 +105,14 @@ export function resolveDesktopAppBranding(input: {
   readonly appVersion: string;
 }): DesktopAppBranding {
   const stageLabel = resolveDesktopAppStageLabel(input);
+  const forkId = resolveForkId(input.appVersion);
+  if (forkId) {
+    return {
+      baseName: `${APP_BASE_NAME} ${forkLabel(forkId)}`,
+      stageLabel,
+      displayName: `${APP_BASE_NAME} (${forkLabel(forkId)})`,
+    };
+  }
   return {
     baseName: APP_BASE_NAME,
     stageLabel,
@@ -156,10 +166,12 @@ const make = Effect.fn("desktop.environment.make")(function* (
       : input.platform === "darwin"
         ? path.join(homeDirectory, "Library", "Application Support")
         : Option.getOrElse(config.xdgConfigHome, () => path.join(homeDirectory, ".config"));
+  const forkId = resolveForkId(input.appVersion);
   const baseDir = resolveDesktopBaseDir({
     homeDirectory,
     joinPath: path.join,
     t3Home: config.t3Home,
+    forkId,
   });
   const rootDir = path.resolve(input.dirname, "../../..");
   const appRoot = input.isPackaged ? input.appPath : rootDir;
@@ -192,6 +204,7 @@ const make = Effect.fn("desktop.environment.make")(function* (
     isPackaged: input.isPackaged,
     isDevelopment,
     appVersion: input.appVersion,
+    forkId,
     appPath: input.appPath,
     resourcesPath,
     homeDirectory,
@@ -228,9 +241,9 @@ const make = Effect.fn("desktop.environment.make")(function* (
     branding,
     displayName,
     appUserModelId: Option.getOrElse(config.appUserModelIdOverride, () =>
-      isDevelopment ? "com.t3tools.t3code.dev" : "com.t3tools.t3code",
+      forkId ? forkAppId(forkId) : isDevelopment ? "com.t3tools.t3code.dev" : "com.t3tools.t3code",
     ),
-    linuxDesktopEntryName: resolveLinuxDesktopEntryName(isDevelopment),
+    linuxDesktopEntryName: resolveLinuxDesktopEntryName(isDevelopment, forkId),
     linuxApplicationsDir,
     desktopLauncherPath: config.desktopLauncherPath,
     appImagePath: config.appImagePath,

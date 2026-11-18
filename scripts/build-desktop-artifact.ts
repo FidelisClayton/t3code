@@ -15,6 +15,13 @@ import {
   type DirectoryRecord,
 } from "@electron/asar";
 
+import {
+  forkAppId,
+  forkLabel,
+  forkScheme,
+  resolveForkId,
+  stripBuildMetadata,
+} from "@t3tools/shared/forkBuild";
 import { fromYaml } from "@t3tools/shared/schemaYaml";
 import * as HostProcess from "@t3tools/shared/HostProcess";
 import { clerkFrontendApiHostnameFromPublishableKey } from "@t3tools/shared/relayAuth";
@@ -1256,6 +1263,7 @@ function normalizePasskeyRpDomain(value: string): string {
 
 export function resolveMacPasskeySigningConfiguration(
   env: Readonly<Record<string, string | undefined>>,
+  appId = DESKTOP_APP_ID,
 ): MacPasskeySigningConfiguration {
   const teamId = env.T3CODE_APPLE_TEAM_ID?.trim().toUpperCase() ?? "";
   if (!APPLE_TEAM_ID_PATTERN.test(teamId)) {
@@ -1291,7 +1299,7 @@ export function resolveMacPasskeySigningConfiguration(
   }
 
   return {
-    appId: DESKTOP_APP_ID,
+    appId,
     teamId,
     rpDomains: uniqueRpDomains,
     provisioningProfilePath,
@@ -2723,7 +2731,17 @@ export const resolveGitHubPublishConfig = Effect.fn("resolveGitHubPublishConfig"
 });
 
 export function resolveDesktopUpdateChannel(version: string): "latest" | "nightly" {
-  return /-nightly\.\d{8}\.\d+$/.test(version) ? "nightly" : "latest";
+  return /-nightly\.\d{8}\.\d+$/.test(stripBuildMetadata(version)) ? "nightly" : "latest";
+}
+
+export function resolveDesktopAppId(version: string): string {
+  const forkId = resolveForkId(version);
+  return forkId ? forkAppId(forkId) : DESKTOP_APP_ID;
+}
+
+export function resolveDesktopAppSchemes(version: string): string[] {
+  const forkId = resolveForkId(version);
+  return forkId ? [forkScheme(forkId)] : ["t3code", "t3code-dev"];
 }
 
 export function isDesktopPreviewVersion(version: string): boolean {
@@ -2766,6 +2784,8 @@ export function resolvePackageManagerUserAgent(packageManager: string): string {
 }
 
 export function resolveDesktopProductName(version: string): string {
+  const forkId = resolveForkId(version);
+  if (forkId) return `T3 Code (${forkLabel(forkId)})`;
   return resolveDesktopUpdateChannel(version) === "nightly"
     ? "T3 Code (Nightly)"
     : (desktopPackageJson.productName ?? "T3 Code");
@@ -2789,7 +2809,7 @@ export const createBuildConfig = Effect.fn("createBuildConfig")(function* (
 ) {
   const buildConfig: Record<string, unknown> = {
     afterPack: (yield* Path.Path).join(yield* RepoRoot, "scripts/prepare-server-compile-cache.cjs"),
-    appId: DESKTOP_APP_ID,
+    appId: resolveDesktopAppId(version),
     productName: resolveDesktopProductName(version),
     artifactName: "T3-Code-${version}-${arch}.${ext}",
     electronLanguages: [...DESKTOP_ELECTRON_LANGUAGES],
@@ -2819,7 +2839,7 @@ export const createBuildConfig = Effect.fn("createBuildConfig")(function* (
   const updateChannel = resolveDesktopUpdateChannel(version);
   // Missing publish config infers a GitHub feed from tokens; staging has no repository, so manifest generation would crash.
   buildConfig.publish = null;
-  if (!isDesktopPreviewVersion(version)) {
+  if (!isDesktopPreviewVersion(version) && !resolveForkId(version)) {
     const publishConfig = yield* resolveGitHubPublishConfig(updateChannel);
     if (publishConfig) {
       buildConfig.publish = [publishConfig];
@@ -2871,7 +2891,7 @@ export const createBuildConfig = Effect.fn("createBuildConfig")(function* (
       protocols: [
         {
           name: "T3 Code",
-          schemes: ["t3code", "t3code-dev"],
+          schemes: resolveDesktopAppSchemes(version),
         },
         {
           name: "Web site URL",
@@ -2924,13 +2944,15 @@ export const createBuildConfig = Effect.fn("createBuildConfig")(function* (
       protocols: [
         {
           name: "T3 Code",
-          schemes: ["t3code", "t3code-dev"],
+          schemes: resolveDesktopAppSchemes(version),
         },
       ],
       desktop: {
         entry: {
           // Match Electron's WM_CLASS from setDesktopName so docks use this launcher.
-          StartupWMClass: "com.t3tools.T3Code",
+          StartupWMClass: resolveForkId(version)
+            ? resolveDesktopAppId(version)
+            : "com.t3tools.T3Code",
         },
       },
     };
@@ -3859,7 +3881,11 @@ const buildDesktopArtifactUnlocked = Effect.fn("buildDesktopArtifactUnlocked")(f
   const configuredMacPasskeySigning =
     options.platform === "mac" && options.signed
       ? yield* Effect.try({
-          try: () => resolveMacPasskeySigningConfiguration(loadRepoEnv({ repoRoot })),
+          try: () =>
+            resolveMacPasskeySigningConfiguration(
+              loadRepoEnv({ repoRoot }),
+              resolveDesktopAppId(appVersion),
+            ),
           catch: MacPasskeySigningConfigurationResolutionError.fromCause,
         })
       : undefined;

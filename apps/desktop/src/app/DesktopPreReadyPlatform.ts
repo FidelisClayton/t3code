@@ -18,6 +18,7 @@ import {
   renderUrlHandlerDesktopEntry,
   replacedVersionedAppImagePath,
 } from "./DesktopLinuxUrlHandler.ts";
+import { resolveForkId } from "@t3tools/shared/forkBuild";
 import * as ElectronProtocol from "../electron/ElectronProtocol.ts";
 
 export interface DesktopPreReadyCommandLineReader {
@@ -39,10 +40,12 @@ function readCommandLineSwitchValue(
 
 export const resolveEarlyLinuxElectronOptionsFromProcess = (
   homeDirectory: string,
+  forkId: string | undefined,
 ): DesktopEarlyElectronStartup.EarlyLinuxElectronOptions =>
   DesktopEarlyElectronStartup.resolveEarlyLinuxElectronOptions({
     env: process.env,
     homeDirectory,
+    forkId,
     joinPath: NodePath.posix.join,
     readFileString: (path) => NodeFS.readFileSync(path, "utf8"),
   });
@@ -73,13 +76,17 @@ export const make = Effect.gen(function* () {
       platform === "linux"
         ? readCommandLineSwitchValue(Electron.app.commandLine, "password-store")
         : null;
+    const forkId = resolveForkId(Electron.app.getVersion());
     const linux =
-      platform === "linux" ? resolveEarlyLinuxElectronOptionsFromProcess(homeDirectory) : null;
+      platform === "linux"
+        ? resolveEarlyLinuxElectronOptionsFromProcess(homeDirectory, forkId)
+        : null;
 
     if (linux !== null) {
       DesktopEarlyElectronStartup.restoreEarlyLinuxDeviceScaleFactor({
         env: process.env,
         homeDirectory,
+        forkId,
         joinPath: NodePath.posix.join,
         commandLine: Electron.app.commandLine,
         readFileString: (path) => NodeFS.readFileSync(path, "utf8"),
@@ -153,7 +160,7 @@ export const make = Effect.gen(function* () {
                   () => linuxDesktopEntryConfig.appImagePath,
                 ),
               ) ?? process.execPath,
-            scheme: ElectronProtocol.getDesktopScheme(linux.isDevelopment),
+            scheme: ElectronProtocol.getDesktopScheme(linux.isDevelopment, linux.forkId),
             ...(iconPath === undefined ? {} : { iconPath }),
           }),
           "utf8",

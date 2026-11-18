@@ -42,6 +42,18 @@ it.effect.each(["t3code", "T3 Code (Alpha)"])(
     }).pipe(Effect.scoped, Effect.provide(NodeServices.layer)),
 );
 
+it.effect("keeps a fork build's profile apart from the official app's", () =>
+  Effect.gen(function* () {
+    const userDataPath = yield* resolveUserDataPath({
+      appDataDirectory: "/appdata",
+      isDevelopment: false,
+      platform: "win32",
+      forkId: "fidelis",
+    });
+    assert.equal(userDataPath, "/appdata/t3code-fidelis");
+  }).pipe(Effect.provide(NodeServices.layer)),
+);
+
 const gpuCacheDirectories = [
   "GPUCache",
   "GrShaderCache",
