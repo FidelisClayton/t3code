@@ -4,7 +4,7 @@ import {
   serializeAssistantCitation,
   withAssistantCitationComment,
 } from "@t3tools/shared/assistantCitations";
-import type { MarkdownChoice } from "./markdownChoices";
+import type { MarkdownChoice } from "./markdownChoiceLinks";
 
 export type MarkdownChoiceSource = Pick<
   AssistantCitation,

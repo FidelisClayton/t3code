@@ -6,7 +6,7 @@ import {
   applyMarkdownChoiceStateChange,
   type MarkdownChoiceState,
 } from "./markdownChoiceState";
-import { analyzeMarkdownChoices } from "./markdownChoices";
+import { analyzeMarkdownChoices } from "./markdownChoiceLinks";
 const options = analyzeMarkdownChoices(
   "[A](choice:g/a) [B](choice:g/b) [Unit](choices:check/unit)",
 ).options;

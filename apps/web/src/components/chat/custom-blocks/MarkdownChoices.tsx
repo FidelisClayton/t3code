@@ -23,7 +23,7 @@ import {
   parseMarkdownChoiceHref,
   type MarkdownChoice,
   type MarkdownChoiceSelection,
-} from "./markdownChoices";
+} from "./markdownChoiceLinks";
 
 import { captureAssistantTextRange } from "~/lib/assistantTextSelection";
 import {

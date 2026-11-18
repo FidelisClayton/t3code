@@ -112,7 +112,7 @@ import {
   MarkdownInlineChoice,
   MarkdownChoiceCommentTails,
 } from "./chat/custom-blocks/MarkdownChoices";
-import { parseMarkdownChoiceHref } from "./chat/custom-blocks/markdownChoices";
+import { parseMarkdownChoiceHref } from "./chat/custom-blocks/markdownChoiceLinks";
 import { AssistantCitationEmbed } from "./chat/AssistantCitationChip";
 import { MarkdownThreadLink } from "./chat/MarkdownThreadLink";
 import { mathKind } from "@t3tools/shared/markdownMath";

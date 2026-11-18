@@ -5,7 +5,7 @@ import {
   toggleMarkdownChoice,
   type MarkdownChoice,
   type MarkdownChoiceSelection,
-} from "./markdownChoices";
+} from "./markdownChoiceLinks";
 
 const SavedChoices = Schema.Struct({
   selected: Schema.Record(Schema.String, Schema.Array(Schema.String)),

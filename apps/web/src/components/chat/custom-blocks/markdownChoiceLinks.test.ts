@@ -3,7 +3,7 @@ import {
   analyzeMarkdownChoices,
   parseMarkdownChoiceHref,
   toggleMarkdownChoice,
-} from "./markdownChoices";
+} from "./markdownChoiceLinks";
 
 describe("Markdown choices", () => {
   it("accepts bounded literal identifiers and rejects extra URL syntax", () => {
