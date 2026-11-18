@@ -114,6 +114,27 @@ describe("runMigrations", () => {
     }).pipe(Effect.provide(NodeSqliteClient.layer({ filename: ":memory:" }))),
   );
 
+  it.effect("upgrades a fork database that recorded the shell index as migration 81", () =>
+    Effect.gen(function* () {
+      const sql = yield* SqlClient.SqlClient;
+      yield* runMigrations({ toMigrationInclusive: 80 });
+      yield* sql`
+        CREATE INDEX orchestration_v2_projection_turn_items_created_idx
+        ON orchestration_v2_projection_turn_items(thread_id)
+        WHERE type = 'thread_created'
+      `;
+      yield* sql`
+        INSERT INTO effect_sql_migrations (migration_id, name) VALUES (81, 'ThreadCreatedShellIndex')
+      `;
+
+      assert.deepStrictEqual(
+        yield* runMigrations(),
+        migrationManifest.filter(([id]) => id >= 81),
+      );
+      assert.deepStrictEqual(yield* history, migrationManifest);
+    }).pipe(Effect.provide(NodeSqliteClient.layer({ filename: ":memory:" }))),
+  );
+
   it.effect("drops the unused correlation index and keeps correlation values", () =>
     Effect.gen(function* () {
       const sql = yield* SqlClient.SqlClient;

@@ -267,6 +267,19 @@ const assertV2MigrationsCanRun = Effect.fn("assertV2MigrationsCanRun")(function*
   });
 });
 
+// Fork builds before nightly 20261118 recorded ThreadCreatedShellIndex as 81, upstream's id; it now runs as 99.
+const releaseForkShellIndexId = Effect.fn("releaseForkShellIndexId")(function* () {
+  const sql = yield* SqlClient.SqlClient;
+  const tables = yield* sql`
+    SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'effect_sql_migrations'
+  `;
+  if (tables.length === 0) return;
+  yield* sql`
+    DELETE FROM effect_sql_migrations
+    WHERE migration_id = 81 AND name = 'ThreadCreatedShellIndex'
+  `;
+});
+
 const latestMigrationId = Math.max(...migrationEntries.map(([id]) => id));
 
 // Mirrors the Migrator, which runs only ids above the highest recorded, plus the V2-preview reconciliation.
@@ -303,6 +316,7 @@ export const runMigrations = Effect.fn("runMigrations")(function* ({
   // The reconcile takes the write lock; CLI startup must not contend with the server for a no-op.
   const previewMigrations = includesV2 && hasPending ? yield* reconcileV2PreviewMigration() : [];
   if (includesV2) {
+    if (hasPending) yield* releaseForkShellIndexId();
     yield* assertV2MigrationsCanRun(toMigrationInclusive);
   }
   const sql = yield* SqlClient.SqlClient;
