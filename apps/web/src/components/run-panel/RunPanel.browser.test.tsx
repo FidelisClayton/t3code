@@ -7,6 +7,7 @@ import {
   ThreadId,
 } from "@t3tools/contracts";
 import { expect, it, vi } from "vite-plus/test";
+import { userEvent } from "vite-plus/test/browser";
 vi.mock(import("../ChatMarkdown"), () => ({
   default: (({ text }: { text: string }) => <div>{text}</div>) as never,
 }));
@@ -53,6 +54,10 @@ it("shows task details in place and updates progress without a new turn", async 
   };
   await using screen = await render(panel(model([row])));
   await expect.element(screen.getByText("Check the migration")).not.toBeInTheDocument();
+  await expect
+    .element(screen.getByRole("button", { name: "Verifier Running · Subagent Reading schema" }))
+    .toHaveAttribute("aria-expanded", "false");
+  await expect.element(screen.getByText("Reading schema")).toBeVisible();
   await screen.getByRole("button", { name: /Verifier/ }).click();
   await expect.element(screen.getByText("Check the migration")).toBeVisible();
   await screen.rerender(
@@ -60,6 +65,10 @@ it("shows task details in place and updates progress without a new turn", async 
   );
   await expect.element(screen.getByText("Checking rollback")).toBeVisible();
   await expect.element(screen.getByText("Migration verified")).toBeVisible();
+  await screen.getByRole("button", { name: "Working 1", exact: true }).click();
+  await expect.element(screen.getByRole("button", { name: /Verifier/ })).not.toBeInTheDocument();
+  await screen.getByRole("button", { name: "Working 1", exact: true }).click();
+  await expect.element(screen.getByText("Check the migration")).not.toBeInTheDocument();
   expect(screen.router?.state.location.pathname).toBe("/");
 });
 
@@ -78,14 +87,20 @@ it("discloses finished executions without claiming the feature is complete", asy
       ]),
     ),
   );
-  expect(screen.container.querySelector("details")?.open).toBe(false);
-  await screen.getByText("Finished", { exact: false }).first().click();
+  await expect
+    .element(screen.getByRole("button", { name: "Finished 1", exact: true }))
+    .toHaveAttribute("aria-expanded", "false");
+  await expect.element(screen.getByRole("button", { name: /Verifier/ })).not.toBeInTheDocument();
+  await screen.getByRole("button", { name: "Finished 1", exact: true }).click();
   await screen.getByRole("button", { name: /Verifier/ }).click();
   await expect.element(screen.getByText("Agent finished · Subagent")).toBeVisible();
   await expect.element(screen.getByText("Checked schema")).toBeVisible();
+  await screen.getByRole("button", { name: "Finished 1", exact: true }).click();
+  await screen.getByRole("button", { name: "Finished 1", exact: true }).click();
+  await expect.element(screen.getByText("Checked schema")).not.toBeInTheDocument();
 });
 
-it("scopes selection to the environment and thread", async () => {
+it("scopes selection and section defaults to the environment and thread", async () => {
   const data = model([
     {
       key: "same-key",
@@ -99,9 +114,20 @@ it("scopes selection to the environment and thread", async () => {
   await using screen = await render(panel(data));
   await screen.getByRole("button", { name: /Verifier/ }).click();
   await expect.element(screen.getByText("Private task detail")).toBeVisible();
-  await screen.rerender(
-    panel(data, { ref: { ...threadRef, environmentId: EnvironmentId.make("other") } }),
-  );
+  for (const ref of [
+    { ...threadRef, environmentId: EnvironmentId.make("other") },
+    { ...threadRef, environmentId: EnvironmentId.make("other"), threadId: ThreadId.make("other") },
+  ]) {
+    await screen.getByRole("button", { name: "Working 1", exact: true }).click();
+    await screen.rerender(panel(data, { ref }));
+    await expect
+      .element(screen.getByRole("button", { name: "Working 1", exact: true }))
+      .toHaveAttribute("aria-expanded", "true");
+    await expect.element(screen.getByText("Private task detail")).not.toBeInTheDocument();
+    await screen.getByRole("button", { name: /Verifier/ }).click();
+    await expect.element(screen.getByText("Private task detail")).toBeVisible();
+  }
+  await screen.rerender(panel(data));
   await expect.element(screen.getByText("Private task detail")).not.toBeInTheDocument();
 });
 
@@ -119,6 +145,7 @@ it("opens child detail only on selection and exposes the scoped thread route", a
           pendingRequestHint: "approval",
           thread: ref,
         },
+        { key: "worker", kind: "subagent", title: "Verifier", status: "running", group: "working" },
       ]),
     ),
   );
@@ -129,8 +156,15 @@ it("opens child detail only on selection and exposes the scoped thread route", a
   await expect
     .element(screen.getByRole("link", { name: "Open thread" }))
     .toHaveAttribute("href", "/remote/child");
-  await screen.getByRole("button", { name: /Builder/ }).click();
+  await screen.getByRole("button", { name: "Working 1", exact: true }).click();
+  await expect.element(screen.getByText("Selected child activity")).toBeVisible();
+  await screen.getByRole("button", { name: "Needs a look 1", exact: true }).click();
   await expect.element(screen.getByText("Selected child activity")).not.toBeInTheDocument();
+  await screen.getByRole("button", { name: "Needs a look 1", exact: true }).click();
+  await expect.element(screen.getByText("Selected child activity")).not.toBeInTheDocument();
+  await expect
+    .element(screen.getByRole("button", { name: /Builder/ }))
+    .toHaveAttribute("aria-expanded", "false");
 });
 
 it("offers the existing chat response path only for a live, resumable request", async () => {
@@ -163,8 +197,11 @@ it("offers the existing chat response path only for a live, resumable request", 
   await screen.getByRole("button", { name: "Respond in chat" }).click();
   expect(respond).toHaveBeenCalledOnce();
   await expect.element(screen.getByText("Parent execution context")).not.toBeInTheDocument();
-  await screen.getByText("Activity", { exact: true }).click();
+  await screen.getByRole("button", { name: "Activity", exact: true }).click();
   await expect.element(screen.getByText("Parent execution context")).toBeVisible();
+  await screen.getByRole("button", { name: "Activity", exact: true }).click();
+  await expect.element(screen.getByText("Parent execution context")).not.toBeInTheDocument();
+  await expect.element(screen.getByText("Run database migration")).toBeVisible();
   await screen.rerender(panel(requested, { connected: false, onRespond: respond }));
   await expect
     .element(screen.getByRole("button", { name: "Respond in chat" }))
@@ -225,4 +262,50 @@ it("marks unfinished plan steps as last reported when their execution ends or be
   await expect
     .element(screen.getByText("Apply migration · Running", { exact: true }))
     .toBeVisible();
+  await screen.getByRole("button", { name: "Plan", exact: true }).click();
+  await screen.rerender(panel(data, { connected: false }));
+  await expect.element(screen.getByText("Read schema", { exact: true })).not.toBeInTheDocument();
+  await screen.rerender(panel(data, { ref: { ...threadRef, threadId: ThreadId.make("other") } }));
+  await expect.element(screen.getByText("Read schema", { exact: true })).toBeVisible();
+});
+
+it("folds groups independently with keyboard activation and keeps live counts while closed", async () => {
+  const groups = [
+    ["attention", "Needs a look"],
+    ["working", "Working"],
+    ["upNext", "Up next"],
+    ["unavailable", "Unavailable"],
+  ] as const;
+  const rows: RunPanelRow[] = groups.map(([group]) => ({
+    key: group,
+    title: `${group} task`,
+    group,
+    kind: "subagent",
+    status: "running",
+  }));
+  await using screen = await render(panel(model(rows)));
+  for (const [group, title] of groups) {
+    const header = screen.getByRole("button", { name: `${title} 1`, exact: true });
+    await expect.element(header).toHaveAttribute("aria-expanded", "true");
+    await header.click();
+    await expect
+      .element(screen.getByText(`${group} task`, { exact: true }))
+      .not.toBeInTheDocument();
+    await expect.element(header).toHaveAttribute("aria-expanded", "false");
+  }
+  await screen.rerender(
+    panel(model([...rows, { ...rows[1]!, key: "second", title: "Second worker" }])),
+  );
+  const working = screen.getByRole("button", { name: "Working 2", exact: true });
+  await expect.element(working).toHaveAttribute("aria-expanded", "false");
+  await screen.rerender(panel(model(rows.filter((row) => row.group !== "working"))));
+  await screen.rerender(panel(model(rows)));
+  const header = screen.getByRole("button", { name: "Working 1", exact: true });
+  await expect.element(header).toHaveAttribute("aria-expanded", "false");
+  (header.element() as HTMLButtonElement).focus();
+  await userEvent.keyboard("{Enter}");
+  await expect.element(screen.getByText("working task", { exact: true })).toBeVisible();
+  await expect.element(screen.getByText("upNext task", { exact: true })).not.toBeInTheDocument();
+  await userEvent.keyboard(" ");
+  await expect.element(screen.getByText("working task", { exact: true })).not.toBeInTheDocument();
 });

@@ -7,8 +7,22 @@ import {
 import type { EnvironmentThreadStatus } from "@t3tools/client-runtime/state/threads";
 import type { OrchestrationV2PlanArtifact, ScopedThreadRef, RunId } from "@t3tools/contracts";
 import { Link } from "@tanstack/react-router";
-import { Check, ChevronRight, Circle, CircleDot, CircleAlert, ListTodo } from "lucide-react";
-import { type ReactNode, useEffect, useRef, useState } from "react";
+import { T, useGT } from "gt-react";
+import {
+  Ban,
+  Check,
+  ChevronRight,
+  Circle,
+  CircleAlert,
+  CircleCheck,
+  CircleDashed,
+  CircleDot,
+  CircleX,
+  Clock,
+  LoaderCircle,
+  ListTodo,
+} from "lucide-react";
+import { type ReactNode, useEffect, useId, useRef, useState } from "react";
 import {
   useAssistantMessageText,
   useQuietThreadProjection,
@@ -19,10 +33,14 @@ import { useEnvironment } from "../../state/environments";
 import { orchestrationEnvironment } from "../../state/orchestration";
 import { useEnvironmentQuery } from "../../state/query";
 import { revisionedQuery } from "../../state/revisionedQuery";
-import { environmentThreadDetails } from "../../state/threads";
+import { environmentThreadDetails, threadFamilies } from "../../state/threads";
+import { appAtomRegistry } from "../../rpc/atomRegistry";
+import { cn } from "../../lib/utils";
 import { buildThreadRouteParams } from "../../threadRoutes";
 import { useRightPanelStore } from "../../rightPanelStore";
 import { Button } from "../ui/button";
+import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";
+import { CollapsibleSectionHeader } from "../ui/collapsible-section-header";
 import ChatMarkdown from "../ChatMarkdown";
 import {
   deriveRunPanelModel,
@@ -60,6 +78,7 @@ function useCreatedThreads(
 }
 
 export function RunPanelButton({ threadRef, open }: { threadRef: ScopedThreadRef; open: boolean }) {
+  const gt = useGT();
   const thread = useQuietThreadProjection(threadRef);
   const shells = useQuietThreadShells();
   const status = useThreadStatus(threadRef);
@@ -78,11 +97,12 @@ export function RunPanelButton({ threadRef, open }: { threadRef: ScopedThreadRef
     <Button
       variant="ghost"
       size="sm"
-      aria-label={count ? `Open Run, ${count} need a look` : "Open Run"}
+      aria-label={count ? gt("Open Run, {count} need a look", { count }) : gt("Open Run")}
       onClick={() => useRightPanelStore.getState().open(threadRef, "run")}
     >
       <ListTodo className="size-4" />
-      Run{!open && count > 0 ? <span className="tabular-nums">{count}</span> : null}
+      <T>Run</T>
+      {!open && count > 0 ? <span className="tabular-nums">{count}</span> : null}
     </Button>
   );
 }
@@ -94,6 +114,12 @@ export function RunPanel({
   threadRef: ScopedThreadRef;
   onRespondInChat: () => void;
 }) {
+  const gt = useGT();
+  // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- Keep the registry's family read mounted while Run is visible.
+  useEffect(
+    () => threadFamilies.mount(appAtomRegistry, threadRef.environmentId, threadRef.threadId),
+    [threadRef.environmentId, threadRef.threadId],
+  );
   const thread = useQuietThreadProjection(threadRef);
   const shells = useQuietThreadShells();
   const status = useThreadStatus(threadRef);
@@ -120,9 +146,9 @@ export function RunPanel({
       onRespondInChat={onRespondInChat}
       historyNotice={
         created.error
-          ? `Earlier child threads could not be loaded: ${created.error}`
+          ? gt("Earlier child threads could not be loaded: {error}", { error: created.error })
           : created.isPending
-            ? "Loading earlier child threads…"
+            ? gt("Loading earlier child threads…")
             : null
       }
       renderParent={(row) => <ParentDetails threadRef={threadRef} runId={row.runId} />}
@@ -152,6 +178,7 @@ export function RunPanelView({
   renderParent?: (row: RunPanelRow) => ReactNode;
   historyNotice?: string | null;
 }) {
+  const gt = useGT();
   const [selection, setSelection] = useState<{ scope: string; key: string | null } | null>(null);
   const scope = scopedThreadKey(threadRef);
   const selected =
@@ -173,22 +200,16 @@ export function RunPanelView({
         aria-expanded={selected?.key === row.key}
         onClick={() => setSelection({ scope, key: selected?.key === row.key ? null : row.key })}
       >
-        {row.group === "attention" ? (
-          <CircleAlert aria-hidden className="size-4" />
-        ) : row.status === "completed" ? (
-          <Check aria-hidden className="size-4" />
-        ) : (
-          <Circle aria-hidden className="size-3" />
-        )}
+        <RowStatusIcon row={row} label={rowStatusLabel(row, gt)} />
         <span className={styles["run-panel-row-copy"]}>
           <span className={styles["run-panel-title"]}>{row.title}</span>
-          <span className={styles["run-panel-secondary"]}>
-            {row.pendingRequestHint ? "Request pending" : statusLabel(row.status)}
+          <span className={selected?.key === row.key ? styles["run-panel-secondary"] : "sr-only"}>
+            {rowStatusLabel(row, gt)}
             {row.kind === "parent"
-              ? " · This thread"
+              ? gt(" · This thread")
               : row.kind === "subagent"
-                ? " · Subagent"
-                : " · Child thread"}
+                ? gt(" · Subagent")
+                : gt(" · Child thread")}
           </span>
           {row.progress ? (
             <span className={styles["run-panel-progress"]}>{row.progress}</span>
@@ -198,9 +219,14 @@ export function RunPanelView({
       </button>
       {selected?.key === row.key ? (
         <div className={styles["run-panel-detail"]}>
-          {row.detail ? <Detail title="Prompt" text={row.detail} /> : null}
+          {row.detail ? <Detail title={gt("Prompt")} text={row.detail} /> : null}
           {row.result ? (
-            <Detail title="Result" text={row.result} markdown threadRef={row.thread ?? threadRef} />
+            <Detail
+              title={gt("Result")}
+              text={row.result}
+              markdown
+              threadRef={row.thread ?? threadRef}
+            />
           ) : null}
           {row.kind === "parent" && row.status !== "queued" ? (
             <RequestDetails
@@ -210,7 +236,9 @@ export function RunPanelView({
             />
           ) : null}
           {row.kind === "parent" && renderParent ? (
-            <ParentActivity key={row.key}>{renderParent(row)}</ParentActivity>
+            <RunSection key={`${scope}:${row.key}`} title={gt("Activity")} defaultOpen={false}>
+              <div className="flex flex-col gap-3">{renderParent(row)}</div>
+            </RunSection>
           ) : null}
           {row.kind === "child" && row.thread ? (
             <>
@@ -225,23 +253,27 @@ export function RunPanelView({
                   />
                 }
               >
-                Open thread
+                <T>Open thread</T>
               </Button>
             </>
           ) : null}
           {!row.detail && !row.result && row.kind === "subagent" ? (
-            <p className={styles["run-panel-secondary"]}>No further details were reported.</p>
+            <p className={styles["run-panel-secondary"]}>
+              <T>No further details were reported.</T>
+            </p>
           ) : null}
         </div>
       ) : null}
     </li>
   );
   return (
-    <div className={styles["run-panel"]} aria-label="Run">
+    <div className={styles["run-panel"]} aria-label={gt("Run")}>
       <div className={styles["run-panel-heading"]}>
-        <h2>Run</h2>
+        <h2>
+          <T>Run</T>
+        </h2>
         <span className={styles["run-panel-secondary"]}>
-          {live ? "Live activity" : "Activity snapshot"}
+          {live ? gt("Live activity") : gt("Activity snapshot")}
         </span>
       </div>
       {historyNotice ? (
@@ -251,77 +283,77 @@ export function RunPanelView({
       ) : null}
       {error ? (
         <p role="alert" className={styles["run-panel-notice"]}>
-          Could not update activity: {error}
+          {gt("Could not update activity: {error}", { error })}
         </p>
       ) : null}
       {status === "deleted" ? (
-        <p className={styles["run-panel-notice"]}>This thread is no longer available.</p>
+        <p className={styles["run-panel-notice"]}>
+          <T>This thread is no longer available.</T>
+        </p>
       ) : !connected ? (
         <p className={styles["run-panel-notice"]}>
-          Waiting for the environment connection. Activity may be out of date.
+          <T>Waiting for the environment connection. Activity may be out of date.</T>
         </p>
       ) : status !== "live" ? (
         <p role="status" className={styles["run-panel-notice"]}>
-          {model ? "Updating saved activity…" : "Loading activity…"}
+          {model ? gt("Updating saved activity…") : gt("Loading activity…")}
         </p>
       ) : null}
       {model && status !== "deleted" ? (
         <>
           {!model.rows.some((row) => row.group === "attention") ? (
             <p className={styles["run-panel-calm"]}>
-              {live ? "Nothing needs your attention." : "No requests in this snapshot."}
+              {live ? gt("Nothing needs your attention.") : gt("No requests in this snapshot.")}
             </p>
           ) : null}
           {(
             [
-              ["attention", "Needs a look"],
-              ["working", "Working"],
-              ["upNext", "Up next"],
-              ["unavailable", "Unavailable"],
+              ["attention", gt("Needs a look")],
+              ["working", gt("Working")],
+              ["upNext", gt("Up next")],
+              ["unavailable", gt("Unavailable")],
             ] as const
           ).map(([group, title]) => {
             const rows = model.rows.filter((row) => row.group === group);
-            return rows.length ? (
-              <section key={group} className={styles["run-panel-section"]} aria-label={title}>
-                <h3>
-                  {title}
-                  <span className={styles["run-panel-count"]}>{rows.length}</span>
-                </h3>
+            return (
+              <RunSection
+                key={`${scope}:${group}`}
+                title={title}
+                count={rows.length}
+                onCollapse={() => {
+                  if (selected?.group === group) setSelection({ scope, key: null });
+                }}
+              >
                 <ul className={styles["run-panel-rows"]} data-group={group}>
                   {rows.map(renderRow)}
                 </ul>
-              </section>
-            ) : null;
+              </RunSection>
+            );
           })}
           {model.plan ? (
             <PlanDetails
+              key={scope}
               plan={model.plan}
               activeRun={live && planRunIsActive(model)}
               threadRef={threadRef}
             />
           ) : null}
-          {model.rows.some((row) => row.group === "finished") ? (
-            <details
-              className={styles["run-panel-section"]}
-              onToggle={(event) => {
-                if (!event.currentTarget.open && selected?.group === "finished")
-                  setSelection({ scope, key: null });
-              }}
-            >
-              <summary>
-                Finished{" "}
-                <span className={styles["run-panel-count"]}>
-                  {model.rows.filter((row) => row.group === "finished").length}
-                </span>
-              </summary>
-              <ul className={styles["run-panel-rows"]}>
-                {model.rows.filter((row) => row.group === "finished").map(renderRow)}
-              </ul>
-            </details>
-          ) : null}
+          <RunSection
+            key={`${scope}:finished`}
+            title={gt("Finished")}
+            count={model.rows.filter((row) => row.group === "finished").length}
+            defaultOpen={false}
+            onCollapse={() => {
+              if (selected?.group === "finished") setSelection({ scope, key: null });
+            }}
+          >
+            <ul className={styles["run-panel-rows"]}>
+              {model.rows.filter((row) => row.group === "finished").map(renderRow)}
+            </ul>
+          </RunSection>
           {model.rows.length === 0 && !model.plan ? (
             <p className={styles["run-panel-secondary"]}>
-              Activity and plans will appear when this thread runs.
+              <T>Activity and plans will appear when this thread runs.</T>
             </p>
           ) : null}
         </>
@@ -330,16 +362,40 @@ export function RunPanelView({
   );
 }
 
-function ParentActivity({ children }: { children: ReactNode }) {
-  const [open, setOpen] = useState(false);
+function RunSection({
+  title,
+  count,
+  defaultOpen = true,
+  onCollapse,
+  children,
+}: {
+  title: string;
+  count?: number;
+  defaultOpen?: boolean;
+  onCollapse?: () => void;
+  children: ReactNode;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+  const contentId = useId();
+  if (count === 0) return null;
   return (
-    <details
-      className={styles["run-panel-section"]}
-      onToggle={(event) => setOpen(event.currentTarget.open)}
-    >
-      <summary>Activity</summary>
-      {open ? <div className="flex flex-col gap-3">{children}</div> : null}
-    </details>
+    <section className={styles["run-panel-section"]} aria-label={title}>
+      <CollapsibleSectionHeader
+        variant="panel"
+        expanded={open}
+        aria-controls={open ? contentId : undefined}
+        accessory={
+          count != null ? <span className="font-normal tabular-nums"> {count}</span> : undefined
+        }
+        onClick={() => {
+          if (open) onCollapse?.();
+          setOpen(!open);
+        }}
+      >
+        {title}
+      </CollapsibleSectionHeader>
+      {open ? <div id={contentId}>{children}</div> : null}
+    </section>
   );
 }
 
@@ -350,6 +406,7 @@ function ParentDetails({
   threadRef: ScopedThreadRef;
   runId: RunId | undefined;
 }) {
+  const gt = useGT();
   const thread = useQuietThreadProjection(threadRef);
   const items = thread?.projection.turnItems.filter((item) => item.runId === runId);
   const prompt = items?.find((item) => item.type === "user_message");
@@ -357,13 +414,13 @@ function ParentDetails({
   const output = useAssistantMessageText(threadRef, message?.id);
   return (
     <>
-      {prompt?.type === "user_message" ? <Detail title="Prompt" text={prompt.text} /> : null}
+      {prompt?.type === "user_message" ? <Detail title={gt("Prompt")} text={prompt.text} /> : null}
       {output ? (
-        <Detail title="Latest response" text={output} markdown threadRef={threadRef} />
+        <Detail title={gt("Latest response")} text={output} markdown threadRef={threadRef} />
       ) : null}
       {!prompt && !output ? (
         <p className={styles["run-panel-secondary"]}>
-          No further activity has been reported for this execution.
+          <T>No further activity has been reported for this execution.</T>
         </p>
       ) : null}
     </>
@@ -371,6 +428,7 @@ function ParentDetails({
 }
 
 function ChildDetails({ threadRef }: { threadRef: ScopedThreadRef }) {
+  const gt = useGT();
   const thread = useQuietThreadProjection(threadRef);
   const status = useThreadStatus(threadRef);
   const error = useAtomValue(environmentThreadDetails.errorAtom(threadRef));
@@ -381,15 +439,17 @@ function ChildDetails({ threadRef }: { threadRef: ScopedThreadRef }) {
   const output = useAssistantMessageText(threadRef, latestMessage?.id);
   if (status === "deleted")
     return (
-      <p className={styles["run-panel-secondary"]}>This child thread is no longer available.</p>
+      <p className={styles["run-panel-secondary"]}>
+        <T>This child thread is no longer available.</T>
+      </p>
     );
-  if (error) return <p role="alert">Could not load child activity: {error}</p>;
+  if (error) return <p role="alert">{gt("Could not load child activity: {error}", { error })}</p>;
   if (!thread)
     return (
       <p className={styles["run-panel-secondary"]}>
         {environment?.connection.phase === "connected"
-          ? "Loading child activity…"
-          : "Child activity is unavailable while disconnected."}
+          ? gt("Loading child activity…")
+          : gt("Child activity is unavailable while disconnected.")}
       </p>
     );
   const requests = derivePendingThreadRequests(thread.projection);
@@ -403,12 +463,12 @@ function ChildDetails({ threadRef }: { threadRef: ScopedThreadRef }) {
     <>
       {!live ? (
         <p className={styles["run-panel-secondary"]}>
-          Saved child activity. Open the thread to check its current state.
+          <T>Saved child activity. Open the thread to check its current state.</T>
         </p>
       ) : null}
       <RequestDetails requests={requests} live={false} />
       {output ? (
-        <Detail title="Latest response" text={output} markdown threadRef={threadRef} />
+        <Detail title={gt("Latest response")} text={output} markdown threadRef={threadRef} />
       ) : null}
       {model.plan ? (
         <PlanDetails
@@ -430,6 +490,7 @@ function RequestDetails({
   live: boolean;
   onRespondInChat?: () => void;
 }) {
+  const gt = useGT();
   const actionable =
     requests.approvals.some((request) => request.responseCapability === "live") ||
     requests.userInputs.some((request) => request.responseCapability !== "not_resumable");
@@ -440,8 +501,8 @@ function RequestDetails({
           key={request.requestId}
           title={
             request.responseCapability === "live"
-              ? "Approval requested"
-              : "Approval no longer resumable"
+              ? gt("Approval requested")
+              : gt("Approval no longer resumable")
           }
           text={request.detail ?? request.reason ?? request.requestKind}
         />
@@ -455,7 +516,7 @@ function RequestDetails({
       ))}
       {live && actionable && onRespondInChat ? (
         <Button variant="outline" size="sm" onClick={onRespondInChat}>
-          Respond in chat
+          <T>Respond in chat</T>
         </Button>
       ) : null}
     </>
@@ -512,9 +573,9 @@ function PlanDetails({
   activeRun: boolean;
   threadRef: ScopedThreadRef;
 }) {
+  const gt = useGT();
   return (
-    <section className={styles["run-panel-section"]} aria-label="Plan">
-      <h3>Plan</h3>
+    <RunSection key={scopedThreadKey(threadRef)} title={gt("Plan")}>
       {plan.kind === "todo_list" ? (
         <>
           {plan.explanation ? (
@@ -525,7 +586,9 @@ function PlanDetails({
               <li key={step.id}>
                 <span
                   aria-label={
-                    step.status === "running" && !activeRun ? "last reported running" : step.status
+                    step.status === "running" && !activeRun
+                      ? gt("last reported running")
+                      : step.status
                   }
                 >
                   {step.status === "completed" ? (
@@ -541,7 +604,7 @@ function PlanDetails({
                   {step.status === "running" ? (
                     <span className={styles["run-panel-secondary"]}>
                       {" "}
-                      · {activeRun ? "Running" : "Last reported running"}
+                      · {activeRun ? gt("Running") : gt("Last reported running")}
                     </span>
                   ) : null}
                 </span>
@@ -560,33 +623,67 @@ function PlanDetails({
           />
         </div>
       )}
-    </section>
+    </RunSection>
   );
 }
 
-function statusLabel(status: RunPanelRow["status"]) {
+function statusLabel(status: RunPanelRow["status"], gt: ReturnType<typeof useGT>) {
   switch (status) {
     case "completed":
-      return "Agent finished";
+      return gt("Agent finished");
     case "cancelled":
-      return "Cancelled";
+      return gt("Cancelled");
     case "failed":
-      return "Failed";
+      return gt("Failed");
     case "interrupted":
-      return "Interrupted";
+      return gt("Interrupted");
     case "waiting":
-      return "Waiting";
+      return gt("Waiting");
     case "pending":
     case "queued":
-      return "Queued";
+      return gt("Queued");
     case "preparing":
     case "starting":
-      return "Starting";
+      return gt("Starting");
     case "running":
-      return "Running";
+      return gt("Running");
     default:
-      return "Activity unavailable";
+      return gt("Activity unavailable");
   }
+}
+
+function rowStatusLabel(row: RunPanelRow, gt: ReturnType<typeof useGT>) {
+  return row.pendingRequestHint ? gt("Request pending") : statusLabel(row.status, gt);
+}
+
+// Static icons; hues follow the sidebar status pill (resolveThreadStatusPill) via semantic tokens.
+// aria-hidden because the row's sr-only text already names the status; the tooltip serves pointer users.
+function RowStatusIcon({ row, label }: { row: RunPanelRow; label: string }) {
+  const { status } = row;
+  const [Icon, tone] =
+    status === "failed" || status === "interrupted"
+      ? ([CircleX, "text-error"] as const)
+      : row.group === "attention"
+        ? ([CircleAlert, "text-warning"] as const)
+        : status === "running" || status === "starting" || status === "preparing"
+          ? ([LoaderCircle, "text-info"] as const)
+          : status === "waiting" || status === "queued" || status === "pending"
+            ? ([Clock, "text-muted-foreground"] as const)
+            : status === "completed"
+              ? ([CircleCheck, "text-success"] as const)
+              : status === "cancelled"
+                ? ([Ban, "text-muted-foreground"] as const)
+                : ([CircleDashed, "text-muted-foreground"] as const);
+  return (
+    <Tooltip>
+      <TooltipTrigger
+        render={<span aria-hidden className={cn(styles["run-panel-status"], tone)} />}
+      >
+        <Icon className="size-4" />
+      </TooltipTrigger>
+      <TooltipPopup side="top">{label}</TooltipPopup>
+    </Tooltip>
+  );
 }
 
 export function useRunResponseFocus({

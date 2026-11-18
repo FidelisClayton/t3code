@@ -85,6 +85,25 @@ function input() {
 }
 
 describe("deriveRunPanelModel", () => {
+  it.each(["completed", "failed", "interrupted", "cancelled"] as const)(
+    "retains a linked child's %s outcome when its shell is omitted",
+    (status) => {
+      const base = input();
+      const model = deriveRunPanelModel({
+        ...base,
+        projection: {
+          ...base.projection,
+          runs: [run(1, "completed")],
+          subagents: [agent({ childThreadId: ThreadId.make("child"), status })],
+        },
+      });
+      expect(model.rows.find((row) => row.kind === "child")).toMatchObject({
+        status,
+        group: status === "failed" || status === "interrupted" ? "attention" : "finished",
+      });
+    },
+  );
+
   it("orders actual executions and keeps failure outcomes distinct from completed", () => {
     const base = input();
     const model = deriveRunPanelModel({
@@ -230,7 +249,7 @@ describe("deriveRunPanelModel", () => {
         providerInstanceId: ProviderInstanceId.make("codex"),
         providerName: "codex",
         lastError: null,
-        updatedAt: "2026-11-10T00:00:00Z",
+        updatedAt: "2026-11-10T00:01:00Z",
       },
       lineage: {
         rootThreadId: base.projection.thread.id,
@@ -252,9 +271,15 @@ describe("deriveRunPanelModel", () => {
         ...base.projection,
         runs: [run(1, "completed"), run(2, "running")],
         subagents: [
-          agent({ childThreadId: childId, progress: "Checking", result: "Actual result" }),
+          agent({
+            childThreadId: childId,
+            status: "completed",
+            progress: "Checking",
+            result: "Actual result",
+          }),
           agent({
             id: NodeId.make("remote"),
+            status: "completed",
             remoteChild: {
               environmentId: EnvironmentId.make("remote"),
               threadId: childId,
@@ -270,23 +295,107 @@ describe("deriveRunPanelModel", () => {
     expect(children).toHaveLength(2);
     expect(new Set(children.map((row) => row.key)).size).toBe(2);
     expect(children.find((row) => row.thread?.environmentId === environmentId)).toMatchObject({
+      status: "running",
       group: "working",
       progress: "Checking",
       result: "Actual result",
     });
     expect(children.find((row) => row.thread?.environmentId === "remote")).toMatchObject({
-      status: "unavailable",
-      group: "unavailable",
+      status: "completed",
+      group: "finished",
     });
     expect(model.rows.some((row) => row.kind === "subagent" && row.title === "Verifier")).toBe(
       true,
     );
   });
 
+  it("resolves an idle native child without an independent run from its linked outcome", () => {
+    const base = input();
+    const childId = ThreadId.make("native-child");
+    const model = deriveRunPanelModel({
+      ...base,
+      projection: {
+        ...base.projection,
+        runs: [run(1, "completed")],
+        subagents: [agent({ childThreadId: childId, status: "completed" })],
+      },
+      shells: [
+        makeThreadFixture({
+          environmentId,
+          id: childId,
+          runtime: {
+            status: "idle",
+            activeRunId: null,
+            providerInstanceId: ProviderInstanceId.make("codex"),
+            providerName: "codex",
+            lastError: null,
+            updatedAt: "2026-11-10T00:00:00Z",
+          },
+        }),
+      ],
+    });
+    expect(model.rows.find((row) => row.kind === "child")).toMatchObject({
+      status: "completed",
+      group: "finished",
+    });
+  });
+
+  it.each([false, true])(
+    "resolves idle from its saved run unless background work is awaited (%s)",
+    (awaited) => {
+      const base = input();
+      const childId = ThreadId.make("parked-child");
+      const model = deriveRunPanelModel({
+        ...base,
+        createdThreads: [{ threadId: childId, runId: null }],
+        shells: [
+          makeThreadFixture({
+            environmentId,
+            id: childId,
+            runtime: {
+              status: "idle",
+              activeRunId: null,
+              providerInstanceId: ProviderInstanceId.make("codex"),
+              providerName: "codex",
+              lastError: null,
+              updatedAt: "2026-11-10T00:00:00Z",
+            },
+            latestRun: {
+              runId: RunId.make("child-run"),
+              status: "completed",
+              requestedAt: null,
+              startedAt: null,
+              completedAt: null,
+              assistantMessageId: null,
+            },
+            pendingBackgroundTasks: [
+              { taskId: "command", kind: "command", ...(awaited ? { awaited: true } : {}) },
+            ],
+          }),
+        ],
+      });
+      expect(model.rows.find((row) => row.kind === "child")).toMatchObject({
+        status: awaited ? "waiting" : "completed",
+        group: awaited ? "working" : "finished",
+      });
+    },
+  );
+
   it("uses thread_created associations without inventing completion for missing shells", () => {
     const base = input();
     const model = deriveRunPanelModel({
       ...base,
+      shells: [
+        makeThreadFixture({
+          environmentId: EnvironmentId.make("remote"),
+          id: ThreadId.make("created-child"),
+          delegatedFrom: {
+            environmentId,
+            threadId: base.projection.thread.id,
+            title: "Parent",
+          },
+        }),
+      ],
       projection: {
         ...base.projection,
         runs: [run(1, "completed")],
@@ -315,10 +424,10 @@ describe("deriveRunPanelModel", () => {
         ],
       },
     });
-    expect(model.rows.find((row) => row.kind === "child")).toMatchObject({
-      status: "unavailable",
-      group: "unavailable",
-    });
+    expect(model.rows.filter((row) => row.kind === "child")).toMatchObject([
+      { status: "unavailable", group: "unavailable", thread: { environmentId } },
+      { status: "unavailable", group: "unavailable", thread: { environmentId: "remote" } },
+    ]);
   });
   it.each(["live", "not_resumable"] as const)(
     "only treats %s approvals as actionable",

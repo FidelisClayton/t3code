@@ -1,4 +1,5 @@
 import * as DateTime from "effect/DateTime";
+import { backgroundWorkHoldsCompletion } from "@t3tools/shared/orchestrationV2PendingBackgroundWork";
 import { threadKey } from "@t3tools/client-runtime/state/entities";
 import { resolveActiveThreadRun } from "@t3tools/client-runtime/state/thread-workflows";
 import { isTerminalSubagentStatus } from "@t3tools/client-runtime/state/subagentRuntime";
@@ -164,7 +165,17 @@ export function deriveRunPanelModel(input: RunPanelInput): RunPanelModel {
   }
   for (const [key, { thread, agent }] of linked) {
     const shell = shellByKey.get(key);
-    const status = shell?.runtime?.status ?? shell?.latestRun?.status ?? "unavailable";
+    const runtimeStatus = shell?.runtime?.status;
+    const status =
+      (runtimeStatus === "idle"
+        ? backgroundWorkHoldsCompletion(shell?.pendingBackgroundTasks ?? [])
+          ? "waiting"
+          : undefined
+        : runtimeStatus) ??
+      shell?.latestRun?.status ??
+      agent?.status ??
+      runtimeStatus ??
+      "unavailable";
     const pendingRequestHint = shell?.hasPendingApprovals
       ? "approval"
       : shell?.hasPendingUserInput
