@@ -1,6 +1,6 @@
 {
   "name": "@t3tools/contracts",
-  "version": "0.1.9-nightly.20261110.4478+fidelis.1",
+  "version": "0.1.11-nightly.20261118.4877+fidelis.1",
   "private": true,
   "files": [
     "dist"
