@@ -28,6 +28,10 @@ describe("Markdown recap", () => {
       });
     }
     expect(parseMarkdownRecap(JSON.stringify(recap))?.items[0]?.work).toBeUndefined();
+    const { details: _details, ...withoutDetails } = item;
+    expect(
+      parseMarkdownRecap(JSON.stringify({ ...recap, items: [withoutDetails] }))?.items[0],
+    ).toEqual({ ...withoutDetails, work: undefined });
   });
 
   it("rejects invalid, excess and oversized agent data", () => {

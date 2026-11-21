@@ -40,15 +40,24 @@ export function MarkdownRecapBlock({
         {recap.items.map((item, index) => (
           <div className="markdown-recap-row" key={index}>
             <span className="markdown-recap-label">{label(item)}</span>
-            <details>
-              <summary
+            {item.details === undefined ? (
+              <span
                 aria-label={`${item.status === "running" ? "Running" : "Building"}: ${item.summary}`}
               >
                 <i className={`markdown-recap-marker ${item.status}`} aria-hidden="true" />
                 {item.summary}
-              </summary>
-              <div className="markdown-recap-details">{renderMarkdown(item.details)}</div>
-            </details>
+              </span>
+            ) : (
+              <details>
+                <summary
+                  aria-label={`${item.status === "running" ? "Running" : "Building"}: ${item.summary}`}
+                >
+                  <i className={`markdown-recap-marker ${item.status}`} aria-hidden="true" />
+                  {item.summary}
+                </summary>
+                <div className="markdown-recap-details">{renderMarkdown(item.details)}</div>
+              </details>
+            )}
             {item.work ? (
               <Link
                 className="markdown-recap-work"

@@ -18,7 +18,7 @@ const MarkdownRecap = Schema.Struct({
       ...label,
       status: Schema.Literals(["running", "building"]),
       summary: text(1024),
-      details: text(32768),
+      details: Schema.optionalKey(text(32768)),
       work: Schema.optionalKey(
         Schema.Struct({
           kind: Schema.Literals(["thread", "subagent"]),
