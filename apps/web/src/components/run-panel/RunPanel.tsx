@@ -633,6 +633,8 @@ function statusLabel(status: RunPanelRow["status"], gt: ReturnType<typeof useGT>
       return gt("Agent finished");
     case "cancelled":
       return gt("Cancelled");
+    case "ended":
+      return gt("Ended");
     case "failed":
       return gt("Failed");
     case "interrupted":
@@ -671,9 +673,11 @@ function RowStatusIcon({ row, label }: { row: RunPanelRow; label: string }) {
             ? ([Clock, "text-muted-foreground"] as const)
             : status === "completed"
               ? ([CircleCheck, "text-success"] as const)
-              : status === "cancelled"
-                ? ([Ban, "text-muted-foreground"] as const)
-                : ([CircleDashed, "text-muted-foreground"] as const);
+              : status === "ended"
+                ? ([CircleCheck, "text-muted-foreground"] as const)
+                : status === "cancelled"
+                  ? ([Ban, "text-muted-foreground"] as const)
+                  : ([CircleDashed, "text-muted-foreground"] as const);
   return (
     <Tooltip>
       <TooltipTrigger

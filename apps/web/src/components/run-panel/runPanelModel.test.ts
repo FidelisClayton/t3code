@@ -510,12 +510,28 @@ describe("deriveRunPanelModel", () => {
       blockedOnThreadWait: true,
     });
     expect(deriveRunPanelModel({ ...base, shells: [shell] }).rows[0]).toMatchObject({
-      group: "unavailable",
-      status: "unavailable",
+      group: "finished",
+      status: "ended",
     });
     expect(
       deriveRunPanelModel({ ...base, shells: [{ ...shell, hasPendingUserInput: true }] }).rows[0],
     ).toMatchObject({ group: "attention", pendingRequestHint: "user_input" });
+  });
+  it("shows a subagent child whose record left the window as ended, not unavailable", () => {
+    const base = input();
+    const shell = makeThreadFixture({
+      environmentId,
+      id: ThreadId.make("old-child"),
+      lineage: {
+        parentThreadId: base.projection.thread.id,
+        rootThreadId: base.projection.thread.id,
+        relationshipToParent: "subagent",
+      },
+    });
+    expect(deriveRunPanelModel({ ...base, shells: [shell] }).rows[0]).toMatchObject({
+      group: "finished",
+      status: "ended",
+    });
   });
   it("uses reordered queue positions and recovers plan detail stored in a turn item", () => {
     const base = input();

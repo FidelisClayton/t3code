@@ -25,7 +25,11 @@ export interface RunPanelRow {
   readonly runId?: RunId;
   readonly kind: "parent" | "child" | "subagent";
   readonly title: string;
-  readonly status: OrchestrationV2RunStatus | OrchestrationV2Subagent["status"] | "unavailable";
+  readonly status:
+    | OrchestrationV2RunStatus
+    | OrchestrationV2Subagent["status"]
+    | "ended"
+    | "unavailable";
   readonly group: RunPanelGroup;
   readonly thread?: ScopedThreadRef;
   readonly progress?: string;
@@ -175,7 +179,12 @@ export function deriveRunPanelModel(input: RunPanelInput): RunPanelModel {
       shell?.latestRun?.status ??
       agent?.status ??
       runtimeStatus ??
-      "unavailable";
+      // The thread window drops settled subagent records but keeps every unsettled one, so a
+      // subagent child with no record, runtime or run has already finished.
+      (shell?.lineage.parentThreadId === parent.threadId &&
+      shell.lineage.relationshipToParent === "subagent"
+        ? "ended"
+        : "unavailable");
     const pendingRequestHint = shell?.hasPendingApprovals
       ? "approval"
       : shell?.hasPendingUserInput
