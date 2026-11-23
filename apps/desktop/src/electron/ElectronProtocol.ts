@@ -22,7 +22,7 @@ export function getDesktopScheme(isDevelopment: boolean, forkId?: string): strin
   return isDevelopment ? DESKTOP_DEVELOPMENT_SCHEME : DESKTOP_PRODUCTION_SCHEME;
 }
 
-function getDesktopOrigin(isDevelopment: boolean, forkId?: string): string {
+export function getDesktopOrigin(isDevelopment: boolean, forkId?: string): string {
   return `${getDesktopScheme(isDevelopment, forkId)}://${DESKTOP_HOST}`;
 }
 

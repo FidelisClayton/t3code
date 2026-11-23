@@ -1,5 +1,5 @@
-import { fromMarkdown } from "mdast-util-from-markdown";
-import type { Nodes } from "mdast";
+import type { Nodes } from "hast";
+import { markdownTree } from "../../../markdown/wordsHast";
 
 export type MarkdownChoice = { mode: "single" | "multi"; group: string; value: string };
 export type MarkdownChoiceSelection = Readonly<Record<string, readonly string[]>>;
@@ -14,29 +14,19 @@ export function analyzeMarkdownChoices(text: string) {
   const groups = new Map<string, MarkdownChoice["mode"] | "conflict">();
   const options = new Map<string, MarkdownChoice>();
   if (!/choices?:/.test(text)) return { groups, options };
-  const tree = fromMarkdown(text);
-  const definitions = new Map<string, string>();
-  const visit = (node: Nodes, onNode: (node: Nodes) => void) => {
-    onNode(node);
-    if ("children" in node) for (const child of node.children) visit(child, onNode);
+  const visit = (node: Nodes) => {
+    if (node.type === "element") {
+      const href = node.tagName === "a" ? node.properties.href : undefined;
+      const choice = typeof href === "string" ? parseMarkdownChoiceHref(href) : null;
+      if (choice) {
+        options.set(`${choice.group}/${choice.value}`, choice);
+        const previous = groups.get(choice.group);
+        groups.set(choice.group, previous && previous !== choice.mode ? "conflict" : choice.mode);
+      }
+    }
+    if ("children" in node) for (const child of node.children) visit(child);
   };
-  visit(tree, (node) => {
-    if (node.type === "definition" && !definitions.has(node.identifier))
-      definitions.set(node.identifier, node.url);
-  });
-  visit(tree, (node) => {
-    const href =
-      node.type === "link"
-        ? node.url
-        : node.type === "linkReference"
-          ? definitions.get(node.identifier)
-          : undefined;
-    const choice = href ? parseMarkdownChoiceHref(href) : null;
-    if (!choice) return;
-    options.set(`${choice.group}/${choice.value}`, choice);
-    const previous = groups.get(choice.group);
-    groups.set(choice.group, previous && previous !== choice.mode ? "conflict" : choice.mode);
-  });
+  visit(markdownTree(text));
   for (const [key, choice] of options) {
     if (groups.get(choice.group) === "conflict") options.delete(key);
   }

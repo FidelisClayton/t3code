@@ -62,7 +62,7 @@ export function ThreadTimeline({
   );
   return (
     <MarkdownReferenceProvider key={activeThreadKey} messages={referenceMessages}>
-      <MessagesTimeline {...timelineProps} timelineEntries={displayedEntries} />
+      <MessagesTimeline {...timelineProps} syncing={syncing} timelineEntries={displayedEntries} />
     </MarkdownReferenceProvider>
   );
 }

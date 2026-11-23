@@ -84,11 +84,11 @@ describe("runMigrations", () => {
     }).pipe(Effect.provide(NodeSqliteClient.layer({ filename: ":memory:" }))),
   );
 
-  it.effect("adds the shell index after upstream migration 98 without changing turn items", () =>
+  it.effect("adds the shell index after upstream migration 110 without changing turn items", () =>
     Effect.gen(function* () {
       const sql = yield* SqlClient.SqlClient;
-      yield* runMigrations({ toMigrationInclusive: 98 });
-      assert.deepStrictEqual((yield* history).at(-1), [98, "ActiveShellIndexIndexes"]);
+      yield* runMigrations({ toMigrationInclusive: 110 });
+      assert.deepStrictEqual((yield* history).at(-1), [110, "Workflows"]);
       yield* sql`
         INSERT INTO orchestration_v2_projection_turn_items (
           turn_item_id, thread_id, ordinal, type, status, updated_at, payload_json
@@ -96,7 +96,7 @@ describe("runMigrations", () => {
       `;
       const before = yield* sql`SELECT * FROM orchestration_v2_projection_turn_items`;
 
-      assert.deepStrictEqual(yield* runMigrations(), [[99, "ThreadCreatedShellIndex"]]);
+      assert.deepStrictEqual(yield* runMigrations(), [[111, "ThreadCreatedShellIndex"]]);
 
       assert.deepStrictEqual(yield* history, migrationManifest);
       assert.deepStrictEqual(
@@ -114,25 +114,28 @@ describe("runMigrations", () => {
     }).pipe(Effect.provide(NodeSqliteClient.layer({ filename: ":memory:" }))),
   );
 
-  it.effect("upgrades a fork database that recorded the shell index as migration 81", () =>
-    Effect.gen(function* () {
-      const sql = yield* SqlClient.SqlClient;
-      yield* runMigrations({ toMigrationInclusive: 80 });
-      yield* sql`
-        CREATE INDEX orchestration_v2_projection_turn_items_created_idx
-        ON orchestration_v2_projection_turn_items(thread_id)
-        WHERE type = 'thread_created'
-      `;
-      yield* sql`
-        INSERT INTO effect_sql_migrations (migration_id, name) VALUES (81, 'ThreadCreatedShellIndex')
-      `;
+  it.effect.each([81, 99])(
+    "upgrades a fork database that recorded the shell index as migration %i",
+    (oldId) =>
+      Effect.gen(function* () {
+        const sql = yield* SqlClient.SqlClient;
+        yield* runMigrations({ toMigrationInclusive: oldId - 1 });
+        yield* sql`
+          CREATE INDEX orchestration_v2_projection_turn_items_created_idx
+          ON orchestration_v2_projection_turn_items(thread_id)
+          WHERE type = 'thread_created'
+        `;
+        yield* sql`
+          INSERT INTO effect_sql_migrations (migration_id, name)
+          VALUES (${oldId}, 'ThreadCreatedShellIndex')
+        `;
 
-      assert.deepStrictEqual(
-        yield* runMigrations(),
-        migrationManifest.filter(([id]) => id >= 81),
-      );
-      assert.deepStrictEqual(yield* history, migrationManifest);
-    }).pipe(Effect.provide(NodeSqliteClient.layer({ filename: ":memory:" }))),
+        assert.deepStrictEqual(
+          yield* runMigrations(),
+          migrationManifest.filter(([id]) => id >= oldId),
+        );
+        assert.deepStrictEqual(yield* history, migrationManifest);
+      }).pipe(Effect.provide(NodeSqliteClient.layer({ filename: ":memory:" }))),
   );
 
   it.effect("drops the unused correlation index and keeps correlation values", () =>
