@@ -18,8 +18,8 @@ import {
   CircleDashed,
   CircleDot,
   CircleX,
-  Clock,
-  LoaderCircle,
+  CircleDotDashed,
+  CircleHelp,
   ListTodo,
 } from "lucide-react";
 import { type ReactNode, useEffect, useId, useRef, useState } from "react";
@@ -658,7 +658,7 @@ function rowStatusLabel(row: RunPanelRow, gt: ReturnType<typeof useGT>) {
   return row.pendingRequestHint ? gt("Request pending") : statusLabel(row.status, gt);
 }
 
-// Static icons; hues follow the sidebar status pill (resolveThreadStatusPill) via semantic tokens.
+// Static icons matching the sidebar (TOP_STATUS_ICONS); hues follow resolveThreadStatusPill via semantic tokens.
 // aria-hidden because the row's sr-only text already names the status; the tooltip serves pointer users.
 function RowStatusIcon({ row, label }: { row: RunPanelRow; label: string }) {
   const { status } = row;
@@ -668,16 +668,16 @@ function RowStatusIcon({ row, label }: { row: RunPanelRow; label: string }) {
       : row.group === "attention"
         ? ([CircleAlert, "text-warning"] as const)
         : status === "running" || status === "starting" || status === "preparing"
-          ? ([LoaderCircle, "text-info"] as const)
+          ? ([CircleDashed, "text-info"] as const)
           : status === "waiting" || status === "queued" || status === "pending"
-            ? ([Clock, "text-muted-foreground"] as const)
+            ? ([CircleDotDashed, "text-muted-foreground"] as const)
             : status === "completed"
               ? ([CircleCheck, "text-success"] as const)
               : status === "ended"
                 ? ([CircleCheck, "text-muted-foreground"] as const)
                 : status === "cancelled"
                   ? ([Ban, "text-muted-foreground"] as const)
-                  : ([CircleDashed, "text-muted-foreground"] as const);
+                  : ([CircleHelp, "text-muted-foreground"] as const);
   return (
     <Tooltip>
       <TooltipTrigger
