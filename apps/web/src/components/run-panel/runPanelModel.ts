@@ -181,10 +181,12 @@ export function deriveRunPanelModel(input: RunPanelInput): RunPanelModel {
       runtimeStatus ??
       // The thread window drops settled subagent records but keeps every unsettled one, so a
       // subagent child with no record, runtime or run has already finished.
-      (shell?.lineage.parentThreadId === parent.threadId &&
-      shell.lineage.relationshipToParent === "subagent"
-        ? "ended"
-        : "unavailable");
+      (shell?.blockedOnThreadWait
+        ? "waiting"
+        : shell?.lineage.parentThreadId === parent.threadId &&
+            shell.lineage.relationshipToParent === "subagent"
+          ? "ended"
+          : "unavailable");
     const pendingRequestHint = shell?.hasPendingApprovals
       ? "approval"
       : shell?.hasPendingUserInput

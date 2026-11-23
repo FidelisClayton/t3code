@@ -510,8 +510,8 @@ describe("deriveRunPanelModel", () => {
       blockedOnThreadWait: true,
     });
     expect(deriveRunPanelModel({ ...base, shells: [shell] }).rows[0]).toMatchObject({
-      group: "finished",
-      status: "ended",
+      group: "working",
+      status: "waiting",
     });
     expect(
       deriveRunPanelModel({ ...base, shells: [{ ...shell, hasPendingUserInput: true }] }).rows[0],
