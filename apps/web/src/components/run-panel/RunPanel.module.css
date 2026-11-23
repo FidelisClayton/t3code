@@ -44,12 +44,8 @@
 .run-panel-rows > li {
   overflow-wrap: anywhere;
 }
-.run-panel-rows:not([data-group="attention"]) > li + li {
+.run-panel-rows > li + li {
   border-block-start: 1px solid var(--border);
-}
-.run-panel-rows[data-group="attention"] > li {
-  border: 1px solid color-mix(in oklch, var(--warning) 45%, var(--border));
-  border-radius: 6px;
 }
 .run-panel-row {
   display: flex;
