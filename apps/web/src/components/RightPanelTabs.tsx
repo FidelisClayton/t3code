@@ -117,6 +117,7 @@ import { resolvePullRequestState } from "./pullRequest/pullRequestPresentation";
 import { PullRequestGlyph } from "~/components/pullRequest/pullRequestIcons";
 import { observeResize } from "~/lib/observeResize";
 import { surfaceShortcutKey } from "~/lib/surfaceShortcutKey";
+import { runAddActions } from "./run-panel/runAddActions";
 
 export interface RightPanelTabsProps {
   mode: PreviewPanelMode;
@@ -364,18 +365,7 @@ function RightPanelEmptyState(props: {
   const [highlight, setHighlight] = useState(-1);
 
   const actions = [
-    ...(props.onAddRun
-      ? [
-          {
-            label: msg("Run"),
-            icon: ListTodo,
-            shortcut: "R",
-            available: true,
-            disabledReason: "",
-            onClick: props.onAddRun,
-          },
-        ]
-      : []),
+    ...runAddActions(props.onAddRun),
     {
       label: msg("Browser"),
       icon: Globe2,
@@ -1223,18 +1213,7 @@ export function RightPanelTabs(props: RightPanelTabsProps) {
   };
 
   const addSurfaceActions = [
-    ...(props.onAddRun
-      ? [
-          {
-            label: msg("Run"),
-            icon: ListTodo,
-            shortcut: "R",
-            available: true,
-            disabledReason: "",
-            onClick: props.onAddRun,
-          },
-        ]
-      : []),
+    ...runAddActions(props.onAddRun),
     {
       label: msg("Browser"),
       icon: Globe2,
