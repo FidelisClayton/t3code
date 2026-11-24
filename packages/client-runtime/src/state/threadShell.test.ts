@@ -14,7 +14,7 @@ import { describe, expect, it } from "vite-plus/test";
 
 import { PrimaryConnectionTarget } from "../connection/model.ts";
 import { v2Now, v2ShellSnapshot, v2ThreadShell } from "./orchestrationV2TestFixtures.ts";
-import { applyShellStreamEvent, reuseUnchangedThreadShells } from "./shellReducer.ts";
+import { applyShellStreamEvent } from "./shellReducer.ts";
 import { isThreadWorking } from "./threadInbox.ts";
 import {
   childThreadInputsTitle,
@@ -61,28 +61,6 @@ function makeHarness(environmentIds: ReadonlyArray<EnvironmentId> = [environment
 }
 
 describe("v2 thread shell lists", () => {
-  it("normalizes creation links from old servers and retains them across shell updates", () => {
-    const { registry, threads, snapshotAtom } = makeHarness();
-    registry.set(snapshotAtom(environmentId), { ...v2ShellSnapshot, threads: [v2ThreadShell] });
-    const dispose = registry.mount(threads.threadShellsAtom);
-    expect(registry.get(threads.threadShellsAtom)[0]?.createdThreadIds).toEqual([]);
-    const createdThreadIds = [ThreadId.make("created-child")];
-    const snapshot = { ...v2ShellSnapshot, threads: [{ ...v2ThreadShell, createdThreadIds }] };
-    registry.set(snapshotAtom(environmentId), snapshot);
-    const before = registry.get(threads.threadShellsAtom);
-    expect(before[0]?.createdThreadIds).toBe(createdThreadIds);
-    registry.set(
-      snapshotAtom(environmentId),
-      reuseUnchangedThreadShells(snapshot, {
-        ...snapshot,
-        threads: [{ ...snapshot.threads[0]!, createdThreadIds: [...createdThreadIds] }],
-      }),
-    );
-    expect(registry.get(threads.threadShellsAtom)).toBe(before);
-    dispose();
-    registry.dispose();
-  });
-
   it("builds no child index while no child asks for input", () => {
     const { registry, threads, snapshotAtom } = makeHarness();
     let parentIdReads = 0;

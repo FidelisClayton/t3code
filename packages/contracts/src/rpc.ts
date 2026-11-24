@@ -482,6 +482,7 @@ import {
 } from "./sourceControl.ts";
 import { VcsError } from "./vcs.ts";
 import { Project, ProjectMutation, ProjectMutationError } from "./project.ts";
+import { ForkOrchestrationV2Rpcs } from "./forkOrchestrationV2.ts";
 
 export const WS_METHODS = {
   projectsListEntries: "projects.listEntries",
@@ -2228,24 +2229,6 @@ const WsOrchestrationV2GetNativeChildWorkRpc = Rpc.make(
   },
 );
 
-const WsOrchestrationV2GetMarkdownReferenceRpc = Rpc.make(
-  ORCHESTRATION_V2_WS_METHODS.getMarkdownReference,
-  {
-    payload: OrchestrationV2RpcSchemas.getMarkdownReference.input,
-    success: OrchestrationV2RpcSchemas.getMarkdownReference.output,
-    error: Schema.Union([OrchestrationV2GetThreadProjectionError, EnvironmentAuthorizationError]),
-  },
-);
-
-const WsOrchestrationV2GetCreatedThreadsRpc = Rpc.make(
-  ORCHESTRATION_V2_WS_METHODS.getCreatedThreads,
-  {
-    payload: OrchestrationV2RpcSchemas.getCreatedThreads.input,
-    success: OrchestrationV2RpcSchemas.getCreatedThreads.output,
-    error: Schema.Union([OrchestrationV2GetThreadProjectionError, EnvironmentAuthorizationError]),
-  },
-);
-
 const WsOrchestrationV2GetTurnItemRpc = Rpc.make(ORCHESTRATION_V2_WS_METHODS.getTurnItem, {
   payload: OrchestrationV2RpcSchemas.getTurnItem.input,
   success: OrchestrationV2RpcSchemas.getTurnItem.output,
@@ -2717,8 +2700,7 @@ export const WsRpcGroup = RpcGroup.make(
   WsOrchestrationV2StopWorkflowRpc,
   WsOrchestrationV2ForceStopThreadRpc,
   WsOrchestrationV2GetTurnItemRpc,
-  WsOrchestrationV2GetMarkdownReferenceRpc,
-  WsOrchestrationV2GetCreatedThreadsRpc,
+  ...ForkOrchestrationV2Rpcs,
   WsOrchestrationV2GetTurnDiffRpc,
   WsOrchestrationV2GetFullThreadDiffRpc,
   WsOrchestrationV2SearchThreadsRpc,

@@ -36,6 +36,7 @@ import * as ManagedRelayDpopSigner from "../relay/managedRelay.ts";
 import { EnvironmentRpcUnavailableError, request } from "../rpc/client.ts";
 import type { EnvironmentShellState } from "./shell.ts";
 import { fetchEnvironmentThreadTranscript } from "./threadTranscriptHttp.ts";
+import { FORK_ORCHESTRATION_V2_WS_METHODS } from "@t3tools/contracts";
 
 export function createOrchestrationEnvironmentAtoms<R, E>(
   runtime: Atom.AtomRuntime<EnvironmentRegistry | HttpClient.HttpClient | R, E>,
@@ -210,13 +211,13 @@ export function createOrchestrationEnvironmentAtoms<R, E>(
     }),
     markdownReference: createEnvironmentRpcQueryAtomFamily(runtime, {
       label: "environment-data:orchestration:markdown-reference",
-      tag: ORCHESTRATION_V2_WS_METHODS.getMarkdownReference,
+      tag: FORK_ORCHESTRATION_V2_WS_METHODS.getMarkdownReference,
       staleTimeMs: 0,
       idleTtlMs: 0,
     }),
     createdThreads: createEnvironmentRpcQueryAtomFamily(runtime, {
       label: "environment-data:orchestration:created-threads",
-      tag: ORCHESTRATION_V2_WS_METHODS.getCreatedThreads,
+      tag: FORK_ORCHESTRATION_V2_WS_METHODS.getCreatedThreads,
       staleTimeMs: 0,
       idleTtlMs: 0,
     }),
