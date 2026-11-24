@@ -2,13 +2,14 @@ import { scopeThreadRef, scopedThreadKey } from "@t3tools/client-runtime/environ
 import type { EnvironmentThreadShell } from "@t3tools/client-runtime/state/models";
 import type { SidebarSection } from "../Sidebar.logic";
 
-const FAMILY_SECTIONS = ["pinned", "active", "working", "snoozed", "settled"] as const;
+export const FAMILY_SECTIONS = ["pinned", "active", "working", "snoozed", "settled"] as const;
+export const threadShellKey = (thread: Pick<EnvironmentThreadShell, "environmentId" | "id">) =>
+  scopedThreadKey(scopeThreadRef(thread.environmentId, thread.id));
 type SidebarFamilySections = Record<SidebarSection, readonly EnvironmentThreadShell[]>;
 
 export function buildSidebarThreadFamilies(sections: SidebarFamilySections) {
   const threads = FAMILY_SECTIONS.flatMap((section) => sections[section]);
-  const keyOf = (thread: EnvironmentThreadShell) =>
-    scopedThreadKey(scopeThreadRef(thread.environmentId, thread.id));
+  const keyOf = threadShellKey;
   const byKey = new Map(threads.map((thread) => [keyOf(thread), thread]));
   const candidates = new Map<string, Set<string>>();
   for (const parent of threads) {
@@ -101,7 +102,7 @@ export function flattenSidebarThreadFamilies(
   const rows: { thread: EnvironmentThreadShell; depth: number }[] = [];
   const visit = (thread: EnvironmentThreadShell, depth: number) => {
     rows.push({ thread, depth });
-    const key = scopedThreadKey(scopeThreadRef(thread.environmentId, thread.id));
+    const key = threadShellKey(thread);
     if (expandedByKey[key] !== false) {
       for (const child of forest.childrenByKey.get(key) ?? []) visit(child, depth + 1);
     }

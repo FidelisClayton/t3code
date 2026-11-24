@@ -1,4 +1,3 @@
-import { scopeThreadRef, scopedThreadKey } from "@t3tools/client-runtime/environment";
 import type { EnvironmentThreadShell } from "@t3tools/client-runtime/state/models";
 import { useEffect } from "react";
 import { useOlderSettledShelfGrowth } from "../../state/olderSettledShelf";
@@ -7,12 +6,11 @@ import { useUiStateStore } from "../../uiStateStore";
 import type { SidebarProjectSnapshot } from "../../sidebarProjectGrouping";
 import { sidebarFolderExpansionKeys } from "../Sidebar.logic";
 import {
+  FAMILY_SECTIONS,
   buildSidebarThreadFamilies,
   flattenSidebarThreadFamilies,
+  threadShellKey,
 } from "./SidebarThreadFamilies.logic";
-
-const threadShellKey = (thread: Pick<EnvironmentThreadShell, "environmentId" | "id">) =>
-  scopedThreadKey(scopeThreadRef(thread.environmentId, thread.id));
 
 type SidebarFamilyPartition = Record<
   "pinnedThreads" | "activeThreads" | "workingThreads" | "snoozedThreads" | "settledThreads",
@@ -99,7 +97,7 @@ export function useSidebarThreadFamilies<Partition extends SidebarFamilyPartitio
   const revealFamilySection =
     revealRoot === null || families === null
       ? undefined
-      : (["pinned", "active", "working", "snoozed", "settled"] as const).find((section) =>
+      : FAMILY_SECTIONS.find((section) =>
           families.sections[section].some((thread) => threadShellKey(thread) === revealRoot),
         );
   const revealFolder = folderGroups?.find((group) =>
