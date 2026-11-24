@@ -131,6 +131,7 @@ import {
   type SelectTimelinePageResult,
   type ThreadHistoryPrefix,
 } from "./threadHistoryPaging.ts";
+import * as ForkProjectionStore from "./ForkProjectionStore.ts";
 
 export class ProjectionStoreApplyEventError extends Schema.TaggedError<ProjectionStoreApplyEventError>()(
   "ProjectionStoreApplyEventError",
@@ -1927,22 +1928,8 @@ export function threadShellFromProjection(
     runs,
     pullRequests: projection.thread.pullRequests,
   });
-  const rolledBackRunIds = new Set(
-    projection.runs.filter((run) => run.status === "rolled_back").map((run) => run.id),
-  );
-  const createdThreadIds = [
-    ...new Set(
-      projection.turnItems.flatMap((item) =>
-        item.type === "thread_created" &&
-        item.threadId === projection.thread.id &&
-        (item.runId === null || !rolledBackRunIds.has(item.runId))
-          ? [item.targetThreadId]
-          : [],
-      ),
-    ),
-  ];
   return {
-    createdThreadIds: createdThreadIds.toSorted(),
+    createdThreadIds: ForkProjectionStore.createdThreadIdsFromProjection(projection),
     createdBy: projection.thread.createdBy,
     creationSource: projection.thread.creationSource,
     id: projection.thread.id,
@@ -8763,29 +8750,7 @@ export const layer: Layer.Layer<ProjectionStoreV2, never, SqlClient.SqlClient> =
             WHERE thread_id IN (SELECT value FROM json_each(${encodeIdList(threadIds)}))
           `;
 
-    const selectShellCreatedThreadRows = (threadIds: ReadonlyArray<ThreadId>) =>
-      sql<{ readonly thread_id: string; readonly target_thread_id: string }>`
-        SELECT DISTINCT i.thread_id, json_extract(i.payload_json, '$.targetThreadId') AS target_thread_id
-        FROM orchestration_v2_projection_turn_items i
-        LEFT JOIN orchestration_v2_projection_runs r ON r.run_id = i.run_id
-        WHERE i.type = 'thread_created'
-          AND (r.status IS NULL OR r.status <> 'rolled_back')
-          AND i.thread_id IN (SELECT value FROM json_each(${encodeIdList(threadIds)}))
-        ORDER BY i.thread_id, target_thread_id
-      `;
-
-    const createdThreadIdsByThreadId = (
-      rows: ReadonlyArray<{ readonly thread_id: string; readonly target_thread_id: string }>,
-    ) => {
-      const ids = new Map<ThreadId, ThreadId[]>();
-      for (const row of rows) {
-        const ownerId = ThreadId.make(row.thread_id);
-        const targets = ids.get(ownerId) ?? [];
-        targets.push(ThreadId.make(row.target_thread_id));
-        ids.set(ownerId, targets);
-      }
-      return ids;
-    };
+    const selectShellCreatedThreadRows = ForkProjectionStore.selectShellCreatedThreadRows(sql);
 
     const selectShellPendingTurnItemRows = (
       threadIds?: ReadonlyArray<ThreadId>,
@@ -9422,7 +9387,7 @@ export const layer: Layer.Layer<ProjectionStoreV2, never, SqlClient.SqlClient> =
       );
       const statesByThreadId = new Map(states.map((state) => [state.thread.id, state]));
 
-      const creationIds = createdThreadIdsByThreadId(createdThreadRows);
+      const creationIds = ForkProjectionStore.createdThreadIdsByThreadId(createdThreadRows);
       const shells = states
         .filter((state) => targetThreadIds.has(state.thread.id))
         .map((state) =>
@@ -9929,7 +9894,9 @@ export const layer: Layer.Layer<ProjectionStoreV2, never, SqlClient.SqlClient> =
               return null;
             }
             return shellFromState({
-              createdThreadIds: createdThreadIdsByThreadId(createdThreadRows).get(threadId) ?? [],
+              createdThreadIds:
+                ForkProjectionStore.createdThreadIdsByThreadId(createdThreadRows).get(threadId) ??
+                [],
               state,
               visibleItemCount: visibleItemCountForShell({ threadId, statesByThreadId }),
             });
