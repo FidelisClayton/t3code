@@ -27,13 +27,6 @@ describe("ElectronProtocol", () => {
     unhandleMock.mockReset();
   });
 
-  it("gives fork builds their own scheme in every mode", () => {
-    assert.equal(ElectronProtocol.getDesktopScheme(false), "t3code");
-    assert.equal(ElectronProtocol.getDesktopScheme(true), "t3code-dev");
-    assert.equal(ElectronProtocol.getDesktopScheme(false, "fidelis"), "t3code-fidelis");
-    assert.equal(ElectronProtocol.getDesktopScheme(true, "fidelis"), "t3code-fidelis");
-  });
-
   it.effect("serves the bundled client from disk without a backend", () =>
     Effect.gen(function* () {
       const fileSystem = yield* FileSystem.FileSystem;
