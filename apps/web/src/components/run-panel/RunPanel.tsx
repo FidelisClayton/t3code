@@ -760,7 +760,7 @@ export function useRunPanelChatControls({
   };
 }
 
-export function focusRunRequest(
+function focusRunRequest(
   composer: HTMLElement | null,
   focusComposer: () => void,
 ): HTMLElement | false {

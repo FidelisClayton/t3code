@@ -47,7 +47,7 @@ export const OrchestrationV2GetCreatedThreadsResult = Schema.Struct({
 export type OrchestrationV2GetCreatedThreadsResult =
   typeof OrchestrationV2GetCreatedThreadsResult.Type;
 
-export const ForkOrchestrationV2RpcSchemas = {
+const ForkOrchestrationV2RpcSchemas = {
   getMarkdownReference: {
     input: OrchestrationV2GetMarkdownReferenceInput,
     output: OrchestrationV2GetMarkdownReferenceResult,
