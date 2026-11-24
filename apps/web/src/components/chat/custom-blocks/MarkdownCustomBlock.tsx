@@ -1,18 +1,23 @@
-import type { ReactNode } from "react";
+import { use, type ReactNode } from "react";
 import { MarkdownRecapBlock } from "./MarkdownRecapBlock";
 import { parseMarkdownRecap } from "./markdownRecap";
 import { parseMarkdownReferenceDefinition } from "@t3tools/shared/markdownReferences";
 import type { ScopedThreadRef } from "@t3tools/contracts";
 import { MarkdownFormBlock } from "./MarkdownFormBlock";
 import { MarkdownHtmlBlock } from "./MarkdownHtmlBlock";
-import { parseMarkdownForm } from "./markdownForm";
+import { parseMarkdownForm, type MarkdownFormDefinition } from "./markdownForm";
+import { MarkdownChatHandlersContext } from "./MarkdownChatHandlers";
+
+function ContextFormBlock({ form }: { form: MarkdownFormDefinition }) {
+  const { onSendAppMessage } = use(MarkdownChatHandlersContext);
+  return <MarkdownFormBlock form={form} onSendMessage={onSendAppMessage} />;
+}
 
 export function renderMarkdownCustomBlock({
   language,
   meta,
   source,
   threadRef,
-  onSendMessage,
   namedReferences,
   renderMarkdown,
 }: {
@@ -22,7 +27,6 @@ export function renderMarkdownCustomBlock({
   meta: string | undefined;
   source: string;
   threadRef?: ScopedThreadRef | undefined;
-  onSendMessage?: ((text: string) => Promise<void>) | undefined;
 }) {
   if (language === "reference" && meta === undefined && parseMarkdownReferenceDefinition(source))
     return <></>;
@@ -40,9 +44,7 @@ export function renderMarkdownCustomBlock({
   }
   if (language === "form") {
     const form = parseMarkdownForm(source);
-    return form ? (
-      <MarkdownFormBlock key={source} form={form} onSendMessage={onSendMessage} />
-    ) : null;
+    return form ? <ContextFormBlock key={source} form={form} /> : null;
   }
   return language === "html" && meta === "render" ? (
     <MarkdownHtmlBlock html={source} {...(threadRef ? { threadRef } : {})} />

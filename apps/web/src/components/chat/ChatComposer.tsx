@@ -1,7 +1,3 @@
-import {
-  updateMarkdownChoiceDraft,
-  type MarkdownChoiceDraftUpdate,
-} from "./custom-blocks/markdownChoiceDraft";
 import { copySnapshot } from "./copySnapshot";
 import { VoiceInputSetup } from "./VoiceInputSetup";
 import { useComposerTypingGuard } from "./useComposerTypingGuard";
@@ -308,6 +304,8 @@ import { ComposerControlsBar } from "./ComposerControlsBar";
 import { composerCommandKeyHandler } from "./composerCommandKey";
 import { promptSuggestionToAccept, usePromptSuggestion } from "./usePromptSuggestion";
 import { useFreshSessionArmed } from "./freshSessionArms";
+import { updateComposerChoiceDraft } from "./custom-blocks/composerChoiceDraft";
+import type { MarkdownChoiceDraftUpdate } from "./custom-blocks/markdownChoiceDraft";
 
 function consumePasteAsTextShortcut(deadline: { current: number }): boolean {
   const armed = Date.now() <= deadline.current;
@@ -3339,26 +3337,19 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
         focusComposer();
         return true;
       },
-      updateChoiceDraft: (update) => {
-        if (
-          update.source.environmentId !== environmentId ||
-          update.source.threadId !== activeThreadId ||
-          pendingUserInputs.length > 0 ||
-          activePendingIsResponding ||
-          projectSelectionRequired ||
-          !composerEditorRef.current
-        )
-          return false;
-        const current = promptRef.current;
-        const next = updateMarkdownChoiceDraft(current, update);
-        return (
-          next === current ||
-          applyPromptReplacementStable(0, current.length, next, {
-            expectedText: current,
-            focusEditorAfterReplace: false,
-          })
-        );
-      },
+      updateChoiceDraft: (update) =>
+        updateComposerChoiceDraft({
+          update,
+          environmentId,
+          threadId: activeThreadId,
+          blocked:
+            pendingUserInputs.length > 0 ||
+            activePendingIsResponding ||
+            projectSelectionRequired ||
+            !composerEditorRef.current,
+          promptRef,
+          replacePrompt: applyPromptReplacementStable,
+        }),
       citeAssistantText: (citation, sourceAnchor) =>
         insertComposerTextStable(
           formatAssistantCitationForComposer(citation, citation.comment),

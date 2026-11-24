@@ -1,4 +1,3 @@
-import type { MarkdownChoiceDraftUpdate } from "./chat/custom-blocks/markdownChoiceDraft";
 import { m } from "../i18n/messages";
 import { thrownErrorMessage } from "@t3tools/client-runtime/errors";
 import { useGT, useMessages } from "gt-react";
@@ -696,19 +695,6 @@ export default function ChatView(props: ChatViewProps) {
     return inserted;
   };
   const citeAssistantTextStable = useStableCallback(citeAssistantText);
-  const updateChoiceDraftStable = useStableCallback((update: MarkdownChoiceDraftUpdate) => {
-    const queued = composerRef.current?.updateChoiceDraft(update) ?? false;
-    if (!queued) {
-      toastManager.add({
-        type: "warning",
-        title: gt("The composer is not ready"),
-        description: gt(
-          "Try selecting the choice after the connection or pending input is resolved.",
-        ),
-      });
-    }
-    return queued;
-  });
   const replyToResponseStable = useStableCallback((response: ResponseContextRecord) => {
     const accepted = composerRef.current?.replyToResponse(response) ?? false;
     if (!accepted) {
@@ -3685,6 +3671,7 @@ export default function ChatView(props: ChatViewProps) {
             >
               <WorkspaceMutationIdContext value={workspaceMutationId}>
                 <ThreadTimeline
+                  composerRef={composerRef}
                   pendingApprovals={pendingApprovals}
                   heldApprovalRequestIds={heldApprovalRequestIds}
                   respondingRequestIds={respondingRequestIds}
@@ -3768,7 +3755,6 @@ export default function ChatView(props: ChatViewProps) {
                   onRevertToTurnCount={onRevertTimelineTurnStable}
                   onUseArtifactTemplate={insertArtifactTemplateStable}
                   onSendAppMessage={sendAppMessageStable}
-                  onChoiceDraftUpdate={updateChoiceDraftStable}
                   isRevertingCheckpoint={isRevertingCheckpoint}
                   onImageExpand={onExpandTimelineImageStable}
                   onFileOpen={openFileAttachmentStable}

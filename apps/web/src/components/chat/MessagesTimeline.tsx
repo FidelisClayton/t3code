@@ -1,4 +1,3 @@
-import type { MarkdownChoiceDraftUpdate } from "./custom-blocks/markdownChoiceDraft";
 import { T, useGT, useMessages, Var } from "gt-react";
 import type { SideThreadOpenIntent } from "@t3tools/client-runtime/side-thread";
 import type { ThreadRunSummary } from "@t3tools/client-runtime/state/models";
@@ -305,7 +304,6 @@ interface MessagesTimelineProps {
   availableRevertTurnCounts?: ReadonlySet<number> | undefined;
   onRevertToTurnCount: (targetTurnCount: number, messageId: MessageId) => void;
   onUseArtifactTemplate?: (template: CodexArtifactTemplate) => void;
-  onChoiceDraftUpdate?: ((update: MarkdownChoiceDraftUpdate) => boolean) | undefined;
   onSendAppMessage?: (text: string) => Promise<void>;
   onRunShellCommand?: (command: string) => void;
   isRevertingCheckpoint: boolean;
@@ -409,7 +407,6 @@ const ConversationTimeline = memo(function ConversationTimeline({
   availableRevertTurnCounts,
   onRevertToTurnCount,
   onUseArtifactTemplate = NOOP_USE_ARTIFACT_TEMPLATE,
-  onChoiceDraftUpdate,
   onSendAppMessage,
   onRunShellCommand,
   isRevertingCheckpoint,
@@ -1139,7 +1136,6 @@ const ConversationTimeline = memo(function ConversationTimeline({
     onImageExpand,
     onFileOpen,
     onUseArtifactTemplate,
-    onChoiceDraftUpdate,
     onSendAppMessage,
     onAppFullscreenChange,
     onFileDownload,

@@ -7,6 +7,7 @@ import {
   useSyncExternalStore,
   type ReactNode,
 } from "react";
+import type { TimelineEntry } from "../../../session-logic";
 import { createMarkdownReferenceIndex, type MarkdownReferenceMessage } from "./markdownReferences";
 
 const MarkdownReferenceContext = createContext<ReturnType<
@@ -33,6 +34,21 @@ export function MarkdownReferenceProvider({
     index.replace(messages);
   }, [index, messages]);
   return <MarkdownReferenceContext value={index}>{children}</MarkdownReferenceContext>;
+}
+
+export function MarkdownReferenceTimelineScope({
+  entries,
+  children,
+}: {
+  entries: ReadonlyArray<TimelineEntry>;
+  children: ReactNode;
+}) {
+  const messages = entries.flatMap((entry) =>
+    entry.kind === "message" && entry.message.role === "assistant"
+      ? [{ id: entry.message.id, text: entry.message.text, revision: entry.message.updatedAt }]
+      : [],
+  );
+  return <MarkdownReferenceProvider messages={messages}>{children}</MarkdownReferenceProvider>;
 }
 
 export function MarkdownReferenceScope({

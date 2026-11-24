@@ -1,9 +1,3 @@
-import { isPendingMarkdownComponent } from "@t3tools/shared/markdownCustomFence";
-import type { MarkdownChoiceDraftUpdate } from "./chat/custom-blocks/markdownChoiceDraft";
-import type { MessageId } from "@t3tools/contracts";
-import { parseMarkdownReferenceHref } from "@t3tools/shared/markdownReferences";
-import { MarkdownReferenceLink } from "./chat/custom-blocks/MarkdownReferenceLink";
-import { MarkdownReferenceScope } from "./chat/custom-blocks/MarkdownReferenceScope";
 import { m } from "../i18n/messages";
 import { thrownErrorMessage } from "@t3tools/client-runtime/errors";
 import { msg, T, useGT, useMessages } from "gt-react";
@@ -96,12 +90,6 @@ import React, {
 import { parseAssistantCitationHref } from "@t3tools/shared/assistantCitations";
 import { parseComposerContextHref } from "@t3tools/shared/composerContextReferences";
 import { parseThreadLinkHref } from "@t3tools/shared/threadLinks";
-import {
-  MarkdownChoices,
-  MarkdownInlineChoice,
-  MarkdownChoiceCommentTails,
-} from "./chat/custom-blocks/MarkdownChoices";
-import { parseMarkdownChoiceHref } from "./chat/custom-blocks/markdownChoiceLinks";
 import { AssistantCitationEmbed } from "./chat/AssistantCitationChip";
 import { MarkdownThreadLink } from "./chat/MarkdownThreadLink";
 import { artifactTemplateFromHastProperties } from "@t3tools/shared/codexArtifactTemplates";
@@ -245,13 +233,21 @@ import {
   nodeToPlainText,
 } from "./chat/MarkdownCodeBlock.logic";
 import { reportMarkdownActionFailure } from "./chat/markdownActionFailure";
-import { renderMarkdownCustomBlock } from "./chat/custom-blocks/MarkdownCustomBlock";
+import {
+  ForkListItemContent,
+  ForkMarkdownRoot,
+  isForkMarkdownHref,
+  isForkMarkdownIsland,
+  renderForkAnchor,
+  renderForkFence,
+} from "./chat/custom-blocks/ChatMarkdownFork";
+import { MarkdownChoiceCommentTails } from "./chat/custom-blocks/MarkdownChoices";
+import type { MessageId } from "@t3tools/contracts";
 
 const isAssetNotFoundError = Schema.is(AssetWorkspaceAssetNotFoundError);
 
 interface ChatMarkdownProps {
   messageId?: MessageId | undefined;
-  onChoiceDraftUpdate?: ((update: MarkdownChoiceDraftUpdate) => boolean) | undefined;
   renderInsights?: boolean;
   /** Compact markdown transforms remove blocks before rendering inside a label. */
   inline?: boolean;
@@ -284,7 +280,6 @@ interface ChatMarkdownProps {
   headingLevelOffset?: number | undefined;
   customBlocks?: boolean | undefined;
   namedReferences?: boolean | undefined;
-  onSendAppMessage?: ((text: string) => Promise<void>) | undefined;
 }
 
 export interface ChatMarkdownContextReference {
@@ -456,8 +451,7 @@ function safeUrl(value: string): string {
 }
 
 function markdownUrlTransform(href: string) {
-  if (parseMarkdownReferenceHref(href)) return href;
-  if (parseMarkdownChoiceHref(href)) return href;
+  if (isForkMarkdownHref(href)) return href;
   if (parseAssistantCitationHref(href)) return href;
   if (parseComposerContextHref(href)) return href;
   if (parseThreadLinkHref(href)) return href;
@@ -594,7 +588,6 @@ function useChatMarkdownState(
   {
     text,
     messageId,
-    onChoiceDraftUpdate,
     inline = false,
     cwd,
     agentDirectories,
@@ -614,7 +607,6 @@ function useChatMarkdownState(
     sourceControlMedia = false,
     customBlocks = false,
     namedReferences = true,
-    onSendAppMessage,
     sourceControlMediaRepository,
   }: ChatMarkdownProps,
   streamingBlocks: ReadonlyArray<string> | null,
@@ -1107,10 +1099,8 @@ function useChatMarkdownState(
 
   const componentState = {
     messageId,
-    onChoiceDraftUpdate,
     namedReferences,
     customBlocks,
-    onSendAppMessage,
     canOperateHost,
     canOperatePreview,
     cwd,
@@ -1191,6 +1181,8 @@ function markdownHeadingRenderer(level: 1 | 2 | 3 | 4 | 5 | 6) {
   };
 }
 
+const renderNestedMarkdown = (props: ChatMarkdownProps) => <ChatMarkdown {...props} />;
+
 const CHAT_MARKDOWN_COMPONENTS = {
   h1: markdownHeadingRenderer(1),
   h2: markdownHeadingRenderer(2),
@@ -1257,30 +1249,11 @@ const CHAT_MARKDOWN_COMPONENTS = {
     const { skills, threadRef, environmentId } = use(ChatMarkdownRendererContext);
     // Resolve checkbox markers by offset to avoid rerendering list items on every streamed token.
     const isTaskItem = String(props.className ?? "").includes("task-list-item");
-    let tailRendered = false;
-    const content = React.Children.map(
-      renderSkillInlineMarkdownChildren(children, skills, threadRef, environmentId),
-      (child) => {
-        if (
-          !tailRendered &&
-          React.isValidElement<{ node?: { tagName?: string } }>(child) &&
-          (child.type === "ul" || child.props.node?.tagName === "ol")
-        ) {
-          tailRendered = true;
-          return (
-            <>
-              <MarkdownChoiceCommentTails node={node} />
-              {child}
-            </>
-          );
-        }
-        return child;
-      },
-    );
     return (
       <li {...props} data-list-item-offset={isTaskItem ? node?.position?.start.offset : undefined}>
-        {content}
-        {!tailRendered ? <MarkdownChoiceCommentTails node={node} /> : null}
+        <ForkListItemContent node={node}>
+          {renderSkillInlineMarkdownChildren(children, skills, threadRef, environmentId)}
+        </ForkListItemContent>
       </li>
     );
   },
@@ -1319,7 +1292,6 @@ const CHAT_MARKDOWN_COMPONENTS = {
   a: function MarkdownAnchor({ node, href, children, title: _title, ...props }) {
     const gt = useGT();
     const {
-      customBlocks,
       canOperateHost,
       canOperatePreview,
       cwd,
@@ -1345,53 +1317,15 @@ const CHAT_MARKDOWN_COMPONENTS = {
       renderContextReference,
     } = use(ChatMarkdownRendererContext);
     const text = use(ChatMarkdownTextContext);
-    const state = use(ChatMarkdownRendererContext);
-    const referenceId = href ? parseMarkdownReferenceHref(href) : null;
-    if (referenceId) {
-      const start = node?.position?.start.offset;
-      const end = node?.position?.end.offset;
-      const copyMarkdown =
-        start !== undefined && end !== undefined
-          ? text.slice(start, end)
-          : `[${hastPlainTextDeep(node)}](${href})`;
-      return customBlocks && state.namedReferences ? (
-        <MarkdownReferenceLink
-          key={`${threadRef?.environmentId}:${threadRef?.threadId}:${referenceId}`}
-          id={referenceId}
-          threadRef={threadRef}
-          copyMarkdown={copyMarkdown}
-          renderBody={(body) => (
-            <ChatMarkdown
-              text={body}
-              cwd={cwd}
-              threadRef={threadRef}
-              environmentId={environmentId ?? undefined}
-              imageBaseDir={imageBaseDir}
-              skills={state.skills}
-              onUseArtifactTemplate={state.onUseArtifactTemplate}
-              onRunShellCommand={state.onRunShellCommand}
-              onImageExpand={state.expandMedia}
-              onSendAppMessage={state.onSendAppMessage}
-              customBlocks
-              namedReferences={false}
-            />
-          )}
-        >
-          {children}
-        </MarkdownReferenceLink>
-      ) : (
-        <span data-markdown-copy={copyMarkdown}>{children}</span>
-      );
-    }
-    const choice = href ? parseMarkdownChoiceHref(href) : null;
-    if (choice)
-      return customBlocks ? (
-        <MarkdownInlineChoice key={href} choice={choice} label={hastPlainTextDeep(node)}>
-          {children}
-        </MarkdownInlineChoice>
-      ) : (
-        <span>{children}</span>
-      );
+    const forkAnchor = renderForkAnchor({
+      node,
+      href,
+      children,
+      text,
+      state: use(ChatMarkdownRendererContext),
+      renderMarkdown: renderNestedMarkdown,
+    });
+    if (forkAnchor) return forkAnchor;
     const citation = href ? parseAssistantCitationHref(href) : null;
     const before = node?.position?.start.offset;
     const after = node?.position?.end.offset;
@@ -1935,18 +1869,9 @@ const CHAT_MARKDOWN_COMPONENTS = {
   },
   pre: function MarkdownPre({ node, children, ...props }) {
     const gt = useGT();
-    const state = use(ChatMarkdownRendererContext);
-    const {
-      resolvedTheme,
-      diffThemeName,
-      expandMedia,
-      isStreaming,
-      onRunShellCommand,
-      inline,
-      customBlocks,
-      onSendAppMessage,
-      threadRef,
-    } = state;
+    const { resolvedTheme, diffThemeName, expandMedia, isStreaming, onRunShellCommand } = use(
+      ChatMarkdownRendererContext,
+    );
     const text = use(ChatMarkdownTextContext);
     const codeBlock = extractCodeBlock(children);
     if (!codeBlock) {
@@ -1954,59 +1879,15 @@ const CHAT_MARKDOWN_COMPONENTS = {
     }
 
     const language = extractFenceLanguage(codeBlock.className);
-    const closed = isClosedCodeFence(node, text, codeBlock.code);
-    const meta = extractPreCodeMeta(node);
-    if (
-      customBlocks &&
-      !inline &&
-      isStreaming &&
-      !closed &&
-      isPendingMarkdownComponent(language, meta)
-    ) {
-      return (
-        <p
-          className="text-xs text-muted-foreground"
-          data-markdown-copy=""
-          data-thread-find-ignore="true"
-          data-assistant-citation-ignore="true"
-        >
-          {gt("Preparing component…")}
-        </p>
-      );
-    }
-    if (customBlocks && !inline && closed) {
-      const block = renderMarkdownCustomBlock({
-        language,
-        meta: extractPreCodeMeta(node),
-        source: codeBlock.code,
-        threadRef,
-        onSendMessage: onSendAppMessage,
-        namedReferences: state.namedReferences,
-        renderMarkdown: (body, namedReferences = state.namedReferences, sourceChoices = true) => (
-          <ChatMarkdown
-            text={body}
-            messageId={sourceChoices ? state.messageId : undefined}
-            onChoiceDraftUpdate={sourceChoices ? state.onChoiceDraftUpdate : undefined}
-            cwd={state.cwd}
-            threadRef={threadRef}
-            environmentId={state.environmentId ?? undefined}
-            imageBaseDir={state.imageBaseDir}
-            sourceControlMedia={state.sourceControlMedia}
-            workspaceMutationId={state.workspaceMutationId}
-            renderContextReference={state.renderContextReference}
-            headingLevelOffset={state.headingLevelOffset}
-            skills={state.skills}
-            onUseArtifactTemplate={state.onUseArtifactTemplate}
-            onRunShellCommand={onRunShellCommand}
-            onImageExpand={expandMedia}
-            onSendAppMessage={onSendAppMessage}
-            customBlocks={customBlocks}
-            namedReferences={namedReferences}
-          />
-        ),
-      });
-      if (block) return block;
-    }
+    const forkFence = renderForkFence({
+      language,
+      meta: extractPreCodeMeta(node),
+      code: codeBlock.code,
+      closed: isClosedCodeFence(node, text, codeBlock.code),
+      state: use(ChatMarkdownRendererContext),
+      renderMarkdown: renderNestedMarkdown,
+    });
+    if (forkFence) return forkFence;
     const fenceTitle = extractFenceTitle(extractPreCodeMeta(node));
     const highlightedCode = (
       <RenderErrorBoundary
@@ -2120,17 +2001,6 @@ function hastTextHasChip(node: HastElement, skills: ReadonlyArray<ServerProvider
   );
 }
 
-// Choice comment tails render from the paragraph or list item that holds the choice links.
-function hastHasChoiceLink(node: HastElement): boolean {
-  return node.children.some(
-    (child) =>
-      child.type === "element" &&
-      (child.tagName === "a"
-        ? parseMarkdownChoiceHref(String(child.properties.href ?? "")) !== null
-        : hastHasChoiceLink(child)),
-  );
-}
-
 const HEADING_LEVELS: Record<string, number> = { h1: 1, h2: 2, h3: 3, h4: 4, h5: 5, h6: 6 };
 
 const markdownIslandOptionsByState = new WeakMap<
@@ -2147,7 +2017,6 @@ function markdownIslandOptions(state: ChatMarkdownComponentState): MarkdownIslan
     headingLevelOffset,
     imageBaseDir,
     inlineCodeFileLinkMetaByText,
-    customBlocks,
     onTaskListChange,
     skills,
   } = state;
@@ -2178,7 +2047,7 @@ function markdownIslandOptions(state: ChatMarkdownComponentState): MarkdownIslan
         }
         case "p":
         case "li":
-          return hastTextHasChip(node, skills) || (customBlocks && hastHasChoiceLink(node));
+          return hastTextHasChip(node, skills) || isForkMarkdownIsland(node, state);
         default:
           return false;
       }
@@ -2276,57 +2145,37 @@ function ChatMarkdown({
   const blocks = streamingBlocks ?? [text];
 
   return (
-    <MarkdownReferenceScope
-      text={text}
-      enabled={props.customBlocks === true && props.namedReferences !== false}
+    <Root
+      ref={bindMarkdownRef}
+      className={cn(
+        "chat-markdown w-full min-w-0 [overflow-wrap:anywhere] [word-break:break-word]",
+        !inline &&
+          "text-sm leading-relaxed text-foreground/[calc(90%+var(--appearance-contrast-boost)/10)]",
+        className,
+      )}
+      data-streaming={componentState.isStreaming ? "" : undefined}
+      onCopy={handleCopy}
     >
-      <Root
-        ref={bindMarkdownRef}
-        className={cn(
-          "chat-markdown w-full min-w-0 [overflow-wrap:anywhere] [word-break:break-word]",
-          !inline &&
-            "text-sm leading-relaxed text-foreground/[calc(90%+var(--appearance-contrast-boost)/10)]",
-          className,
-        )}
-        data-streaming={componentState.isStreaming ? "" : undefined}
-        onCopy={handleCopy}
-      >
-        <MarkdownChoices
-          key={JSON.stringify([
-            props.threadRef?.environmentId,
-            props.threadRef?.threadId,
-            props.messageId,
-          ])}
-          text={text}
-          enabled={props.customBlocks === true}
-          rootRef={markdownRef}
-          source={
-            props.threadRef && props.messageId
-              ? { ...props.threadRef, messageId: props.messageId }
-              : undefined
-          }
-          onChoiceDraftUpdate={props.onChoiceDraftUpdate}
-        >
-          <ChatMarkdownRendererContext value={componentState}>
-            <SharedTooltipProvider>
-              {blocks.map((source, index) => (
-                <MarkdownSource
-                  // oxlint-disable-next-line react/no-array-index-key -- streamed blocks only change at the end
-                  key={index}
-                  text={source}
-                  markdown={markdown}
-                  // Every block before the last is finished, so its parse can be reused.
-                  cache={!props.isStreaming || index < blocks.length - 1}
-                />
-              ))}
-            </SharedTooltipProvider>
-          </ChatMarkdownRendererContext>
-        </MarkdownChoices>
-        {localMediaPreview ? (
-          <ExpandedImageDialog preview={localMediaPreview} onClose={closeLocalMediaPreview} />
-        ) : null}
-      </Root>
-    </MarkdownReferenceScope>
+      <ForkMarkdownRoot {...props} text={text} rootRef={markdownRef}>
+        <ChatMarkdownRendererContext value={componentState}>
+          <SharedTooltipProvider>
+            {blocks.map((source, index) => (
+              <MarkdownSource
+                // oxlint-disable-next-line react/no-array-index-key -- streamed blocks only change at the end
+                key={index}
+                text={source}
+                markdown={markdown}
+                // Every block before the last is finished, so its parse can be reused.
+                cache={!props.isStreaming || index < blocks.length - 1}
+              />
+            ))}
+          </SharedTooltipProvider>
+        </ChatMarkdownRendererContext>
+      </ForkMarkdownRoot>
+      {localMediaPreview ? (
+        <ExpandedImageDialog preview={localMediaPreview} onClose={closeLocalMediaPreview} />
+      ) : null}
+    </Root>
   );
 }
 

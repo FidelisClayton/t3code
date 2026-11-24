@@ -5,7 +5,6 @@ import { agentWorkingDirectories } from "@t3tools/client-runtime/workspace-basen
 import { T, useGT, useMessages } from "gt-react";
 import { use, useState } from "react";
 import { type ChatMessage } from "../../types";
-import { useStreamedMarkdownReferences } from "./custom-blocks/MarkdownReferenceScope";
 import ChatMarkdown from "../ChatMarkdown";
 import { GitForkIcon, ReplyIcon } from "lucide-react";
 import { captureAssistantMessageOpening } from "~/lib/assistantTextSelection";
@@ -25,6 +24,7 @@ import { readThreadTurnItems } from "../../state/entities";
 import { useV2ItemSupport } from "../../state/v2ItemSupport";
 import { TimelineRowCtx, TimelineRowActivityCtx, type TimelineRow } from "./timelineRowContext";
 import { MESSAGE_HEADING_LEVEL, MessageAuthorHeading } from "./TimelineRowParts";
+import { useStreamedMarkdownReferences } from "./custom-blocks/MarkdownReferenceScope";
 
 export function AssistantTimelineRow({ row }: { row: Extract<TimelineRow, { kind: "message" }> }) {
   const ctx = use(TimelineRowCtx);
@@ -55,7 +55,6 @@ export function AssistantTimelineRow({ row }: { row: Extract<TimelineRow, { kind
               key={row.message.id}
               text={messageText}
               messageId={row.message.id}
-              onChoiceDraftUpdate={ctx.onChoiceDraftUpdate}
               renderInsights
               cwd={ctx.markdownCwd}
               agentDirectories={() =>
@@ -72,7 +71,6 @@ export function AssistantTimelineRow({ row }: { row: Extract<TimelineRow, { kind
               onRunShellCommand={ctx.onRunShellCommand}
               onImageExpand={ctx.onImageExpand}
               customBlocks
-              onSendAppMessage={ctx.onSendAppMessage}
             />
           </AssistantCitationSource>
         </div>

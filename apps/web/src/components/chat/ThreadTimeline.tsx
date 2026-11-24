@@ -1,5 +1,5 @@
 import type { ScopedThreadRef } from "@t3tools/contracts";
-import { type ComponentProps, useLayoutEffect } from "react";
+import { type ComponentProps, type RefObject, useLayoutEffect } from "react";
 import { useIncrementalTimelineEntries } from "../../hooks/useIncrementalTimelineEntries";
 import type { TimelineEntriesInput, TimelineEntry } from "../../session-logic";
 import { useTimelineVisibleTurnItems } from "../../state/entities";
@@ -9,8 +9,9 @@ import {
   resolveThreadSwitchTimeline,
   timelineHasEphemeralPreviewUrls,
 } from "../ChatView.logic";
-import { MarkdownReferenceProvider } from "./custom-blocks/MarkdownReferenceScope";
 import { MessagesTimeline } from "./MessagesTimeline";
+import { MarkdownTimelineScope } from "./custom-blocks/MarkdownTimelineScope";
+import type { ChatComposerHandle } from "./ChatComposer";
 
 /**
  * The timeline with the streamed text. ChatView reads the thread through its quiet
@@ -25,6 +26,7 @@ export function ThreadTimeline({
   activeThreadKey,
   syncing,
   detailLoading,
+  composerRef,
   ...timelineProps
 }: Omit<ComponentProps<typeof MessagesTimeline>, "timelineEntries"> & {
   /** Null until the thread's detail may load; see resolveThreadDetailRef. */
@@ -35,6 +37,7 @@ export function ThreadTimeline({
   activeThreadKey: string | null;
   syncing: boolean;
   detailLoading: boolean;
+  composerRef: RefObject<ChatComposerHandle | null>;
 }) {
   const visibleTurnItems = useTimelineVisibleTurnItems(threadDetailRef);
   const serverEntries = useIncrementalTimelineEntries(activeThreadKey, {
@@ -55,14 +58,14 @@ export function ThreadTimeline({
     }
     rememberReadyThreadTimeline({ threadKey: activeThreadKey, entries });
   }, [activeThreadKey, detailLoading, entries]);
-  const referenceMessages = displayedEntries.flatMap((entry) =>
-    entry.kind === "message" && entry.message.role === "assistant"
-      ? [{ id: entry.message.id, text: entry.message.text, revision: entry.message.updatedAt }]
-      : [],
-  );
   return (
-    <MarkdownReferenceProvider key={activeThreadKey} messages={referenceMessages}>
+    <MarkdownTimelineScope
+      key={activeThreadKey}
+      entries={displayedEntries}
+      composerRef={composerRef}
+      onSendAppMessage={timelineProps.onSendAppMessage}
+    >
       <MessagesTimeline {...timelineProps} syncing={syncing} timelineEntries={displayedEntries} />
-    </MarkdownReferenceProvider>
+    </MarkdownTimelineScope>
   );
 }
