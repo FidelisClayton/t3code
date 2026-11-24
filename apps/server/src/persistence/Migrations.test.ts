@@ -84,47 +84,33 @@ describe("runMigrations", () => {
     }).pipe(Effect.provide(NodeSqliteClient.layer({ filename: ":memory:" }))),
   );
 
-  it.effect("adds the shell index after upstream migration 111 without changing turn items", () =>
-    Effect.gen(function* () {
-      const sql = yield* SqlClient.SqlClient;
-      yield* runMigrations({ toMigrationInclusive: 111 });
-      assert.deepStrictEqual((yield* history).at(-1), [111, "SupersededRunAttemptIndex"]);
-      yield* sql`
-        INSERT INTO orchestration_v2_projection_turn_items (
-          turn_item_id, thread_id, ordinal, type, status, updated_at, payload_json
-        ) VALUES ('item-1', 'thread-1', 0, 'thread_created', 'completed', '2026-01-01', '{}')
-      `;
-      const before = yield* sql`SELECT * FROM orchestration_v2_projection_turn_items`;
+  const shellIndexNames = Effect.gen(function* () {
+    const sql = yield* SqlClient.SqlClient;
+    const rows = yield* sql<{ readonly name: string }>`
+      SELECT name FROM sqlite_master
+      WHERE type = 'index' AND name = 'orchestration_v2_projection_turn_items_created_idx'
+    `;
+    return rows.map((row) => row.name);
+  });
 
-      assert.deepStrictEqual(yield* runMigrations(), [[112, "ThreadCreatedShellIndex"]]);
+  it.effect("creates the shell index outside the migration ledger", () =>
+    Effect.gen(function* () {
+      yield* runMigrations();
 
       assert.deepStrictEqual(yield* history, migrationManifest);
-      assert.deepStrictEqual(
-        yield* sql`SELECT * FROM orchestration_v2_projection_turn_items`,
-        before,
-      );
-      const indexes = yield* sql<{ readonly name: string }>`
-        SELECT name FROM sqlite_master
-        WHERE type = 'index' AND name = 'orchestration_v2_projection_turn_items_created_idx'
-      `;
-      assert.deepStrictEqual(indexes, [
-        { name: "orchestration_v2_projection_turn_items_created_idx" },
+      assert.deepStrictEqual(yield* shellIndexNames, [
+        "orchestration_v2_projection_turn_items_created_idx",
       ]);
       assert.deepStrictEqual(yield* runMigrations(), []);
     }).pipe(Effect.provide(NodeSqliteClient.layer({ filename: ":memory:" }))),
   );
 
-  it.effect.each([81, 99, 111])(
+  it.effect.each([81, 99, 111, 112])(
     "upgrades a fork database that recorded the shell index as migration %i",
     (oldId) =>
       Effect.gen(function* () {
         const sql = yield* SqlClient.SqlClient;
         yield* runMigrations({ toMigrationInclusive: oldId - 1 });
-        yield* sql`
-          CREATE INDEX orchestration_v2_projection_turn_items_created_idx
-          ON orchestration_v2_projection_turn_items(thread_id)
-          WHERE type = 'thread_created'
-        `;
         yield* sql`
           INSERT INTO effect_sql_migrations (migration_id, name)
           VALUES (${oldId}, 'ThreadCreatedShellIndex')
@@ -135,6 +121,9 @@ describe("runMigrations", () => {
           migrationManifest.filter(([id]) => id >= oldId),
         );
         assert.deepStrictEqual(yield* history, migrationManifest);
+        assert.deepStrictEqual(yield* shellIndexNames, [
+          "orchestration_v2_projection_turn_items_created_idx",
+        ]);
       }).pipe(Effect.provide(NodeSqliteClient.layer({ filename: ":memory:" }))),
   );
 
