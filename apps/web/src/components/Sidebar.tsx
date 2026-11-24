@@ -159,7 +159,7 @@ import { environmentPresentations } from "../state/presentation";
 import { primaryServerKeybindingsAtom } from "../state/server";
 import { environmentProjects } from "../state/projects";
 import { threadEnvironment } from "../state/threads";
-import { useOlderSettledShelf, useOlderSettledShelfGrowth } from "../state/olderSettledShelf";
+import { useOlderSettledShelf } from "../state/olderSettledShelf";
 import { useThreadSearch } from "../state/queries";
 import { useOrchestrationCommand } from "../state/use-orchestration-command";
 import { readEnvironmentScope, useEnvironmentScope } from "../state/session";
@@ -184,8 +184,6 @@ import {
   applySidebarThreadDrop,
   filterSidebarV2VisibleThreads,
   groupSidebarThreadsByProject,
-  buildSidebarThreadFamilies,
-  flattenSidebarThreadFamilies,
   sidebarFolderExpansionKeys,
   buildBulkTitleRegenerationContextMenuItem,
   buildBulkUnpinContextMenuItem,
@@ -290,6 +288,8 @@ import {
   SidebarSectionHeader,
   SidebarSectionPlaceholder,
 } from "./sidebar/SidebarListMarkers";
+import { resolveSidebarFamilyRow } from "./sidebar/SidebarThreadFamilies.logic";
+import { useSidebarThreadFamilies } from "./sidebar/useSidebarThreadFamilies";
 
 function sameSidebarProviderEntries(
   left: ReadonlyMap<string, SidebarProviderEntry>,
@@ -498,7 +498,7 @@ function useSidebarThreads(input: {
   const settledVisibleCount =
     settledTail.scopeKey === projectScopeKey ? settledTail.count : SETTLED_TAIL_INITIAL_COUNT;
 
-  const basePartition = partitionSidebarThreads({
+  const partition = partitionSidebarThreads({
     threads,
     scopedProjectKeys,
     delegatedUnderParent,
@@ -516,103 +516,30 @@ function useSidebarThreads(input: {
     expanded: settledShelfExpanded,
     visibleCount: settledVisibleCount,
   });
-  const listedSettledMembers = basePartition.settledThreads.filter(olderSettledShelf.isListed);
-  useOlderSettledShelfGrowth(olderSettledShelf, listedSettledMembers);
-  const families =
-    folderGroups === null
-      ? null
-      : buildSidebarThreadFamilies({
-          pinned: basePartition.pinnedThreads,
-          active: basePartition.activeThreads,
-          working: basePartition.workingThreads,
-          snoozed: basePartition.snoozedThreads,
-          settled: basePartition.settledThreads.filter(
-            (thread) =>
-              olderSettledShelf.isListed(thread) || threadShellKey(thread) === routeRowThreadKey,
-          ),
-        });
-  const partition =
-    families === null
-      ? basePartition
-      : {
-          ...basePartition,
-          pinnedThreads: families.sections.pinned,
-          activeThreads: families.sections.active,
-          workingThreads: families.sections.working,
-          snoozedThreads: families.sections.snoozed,
-          settledThreads: families.sections.settled,
-        };
-  const expandedByKey = useUiStateStore((store) => store.sidebarThreadExpandedByKey);
-  const setThreadExpanded = useUiStateStore((store) => store.setSidebarThreadExpanded);
-  const revealAncestors: string[] = [];
-  let revealRoot = input.revealKey;
-  if (families !== null && revealRoot !== null) {
-    let parent = families.parentByKey.get(revealRoot);
-    while (parent !== undefined) {
-      revealAncestors.push(parent);
-      revealRoot = parent;
-      parent = families.parentByKey.get(parent);
-    }
-  }
-  const revealedExpandedByKey =
-    revealAncestors.length === 0
-      ? expandedByKey
-      : {
-          ...expandedByKey,
-          ...Object.fromEntries(revealAncestors.map((key) => [key, true])),
-        };
-  const flatten = (list: readonly EnvironmentThreadShell[]) =>
-    families === null
-      ? list
-      : flattenSidebarThreadFamilies(families, list, revealedExpandedByKey).map(
-          (row) => row.thread,
-        );
-  const { pinnedThreads, activeThreads, workingThreads, snoozedThreads, settledThreads } =
-    partition;
-  const revealFamilySection =
-    revealRoot === null || families === null
-      ? undefined
-      : (["pinned", "active", "working", "snoozed", "settled"] as const).find((section) =>
-          families.sections[section].some((thread) => threadShellKey(thread) === revealRoot),
-        );
-  const revealFolder = folderGroups?.find((group) =>
-    group.memberProjectRefs.some((ref) =>
-      activeThreads.some(
-        (thread) =>
-          threadShellKey(thread) === revealRoot &&
-          thread.environmentId === ref.environmentId &&
-          thread.projectId === ref.projectId,
-      ),
-    ),
-  );
-  // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- persists the one-shot route reveal into sidebar preferences before its row consumes it
-  useEffect(() => {
-    if (families === null || input.revealKey === null) return;
-    if (revealAncestors.length > 0) setThreadExpanded(revealAncestors, true);
-    if (revealFolder !== undefined)
-      setProjectExpanded(sidebarFolderExpansionKeys(revealFolder), true);
-    if (revealFamilySection === "settled") setSettledShelfExpanded(true);
-    if (revealFamilySection === "snoozed") setSnoozedShelfExpanded(true);
-  }, [
+  const {
+    partition: familyPartition,
     families,
-    input.revealKey,
-    revealAncestors,
+    familyExpandedByKey,
+    toggleThreadFamily,
+    flatten,
+    familyMembers,
     revealFolder,
     revealFamilySection,
-    setThreadExpanded,
+    routeFamilyRoot,
+  } = useSidebarThreadFamilies({
+    basePartition: partition,
+    olderSettledShelf,
+    folderGroups,
+    routeRowThreadKey,
+    shelfRouteThreadKey,
+    revealKey: input.revealKey,
     setProjectExpanded,
     setSettledShelfExpanded,
     setSnoozedShelfExpanded,
-  ]);
+  });
+  const { pinnedThreads, activeThreads, workingThreads, snoozedThreads, settledThreads } =
+    familyPartition;
   const listedSettledThreads = settledThreads.filter(olderSettledShelf.isListed);
-  let routeFamilyRoot = shelfRouteThreadKey;
-  while (routeFamilyRoot !== null && families?.parentByKey.has(routeFamilyRoot)) {
-    routeFamilyRoot = families.parentByKey.get(routeFamilyRoot)!;
-  }
-  const familyMembers = (list: readonly EnvironmentThreadShell[]) =>
-    families === null
-      ? list
-      : flattenSidebarThreadFamilies(families, list, {}).map((row) => row.thread);
   const settledCount =
     familyMembers(settledThreads).length +
     olderSettledShelf.unloadedCount(partition.visibleThreads);
@@ -674,29 +601,28 @@ function useSidebarThreads(input: {
   ];
   const sectionByThreadKey = new Map<string, SidebarSection>();
   for (const [list, section] of [
-    [basePartition.pinnedThreads, "pinned"],
-    [basePartition.activeThreads, "active"],
-    [basePartition.workingThreads, "working"],
-    [basePartition.snoozedThreads, "snoozed"],
-    [basePartition.settledThreads, "settled"],
+    [partition.pinnedThreads, "pinned"],
+    [partition.activeThreads, "active"],
+    [partition.workingThreads, "working"],
+    [partition.snoozedThreads, "snoozed"],
+    [partition.settledThreads, "settled"],
   ] as const) {
     for (const thread of list) sectionByThreadKey.set(threadShellKey(thread), section);
   }
   return {
-    ...partition,
+    ...familyPartition,
     pinnedThreads: flatten(pinnedThreads),
     families,
-    familyExpandedByKey: revealedExpandedByKey,
-    toggleThreadFamily: (key: string) =>
-      setThreadExpanded([key], revealedExpandedByKey[key] === false),
+    familyExpandedByKey,
+    toggleThreadFamily,
     threads,
     workingShelfEnabled,
     searchableThreads: [
-      ...basePartition.pinnedThreads,
-      ...basePartition.activeThreads,
-      ...basePartition.workingThreads,
-      ...basePartition.snoozedThreads,
-      ...basePartition.settledThreads,
+      ...partition.pinnedThreads,
+      ...partition.activeThreads,
+      ...partition.workingThreads,
+      ...partition.snoozedThreads,
+      ...partition.settledThreads,
     ],
     settledVisibleCount,
     settledCount,
@@ -723,11 +649,11 @@ function useSidebarThreads(input: {
     visibleWorkingThreads,
     orderedThreadKeys: orderedThreads.map(threadShellKey),
     threadByKey: new Map(orderedThreads.map((thread) => [threadShellKey(thread), thread] as const)),
-    settledThreadKeys: new Set(basePartition.settledThreads.map(threadShellKey)),
-    snoozedThreadKeys: new Set(basePartition.snoozedThreads.map(threadShellKey)),
+    settledThreadKeys: new Set(partition.settledThreads.map(threadShellKey)),
+    snoozedThreadKeys: new Set(partition.snoozedThreads.map(threadShellKey)),
     sectionByThreadKey,
-    pinnedKeys: basePartition.pinnedThreads.map(threadShellKey),
-    activeKeys: basePartition.activeThreads.map(threadShellKey),
+    pinnedKeys: partition.pinnedThreads.map(threadShellKey),
+    activeKeys: partition.activeThreads.map(threadShellKey),
     pinnedKeysById: new Map(
       threads.map((thread) => [threadShellKey(thread), thread.pinOrderKey ?? null] as const),
     ),
@@ -3609,26 +3535,25 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
                     {(() => {
                       const renderThreadRow = (
                         thread: EnvironmentThreadShell,
-                        displaySection: SidebarSection,
+                        section: SidebarSection,
                         // The tree row of the project folder this row sits in.
                         folderRow?: string,
                       ) => {
                         const threadKey = scopedThreadKey(
                           scopeThreadRef(thread.environmentId, thread.id),
                         );
-                        const section = families?.ownSection.get(threadKey) ?? displaySection;
+                        const family = resolveSidebarFamilyRow(
+                          families,
+                          threadKey,
+                          section,
+                          familyExpandedByKey,
+                        );
                         const isCard =
-                          section === "active" || section === "pinned" || section === "working";
-                        const familyParent = families?.parentByKey.get(threadKey);
-                        const familyChildren = families?.childrenByKey.get(threadKey);
-                        let familyDepth = 0;
-                        let ancestor = familyParent;
-                        while (ancestor !== undefined) {
-                          familyDepth++;
-                          ancestor = families?.parentByKey.get(ancestor);
-                        }
+                          family.section === "active" ||
+                          family.section === "pinned" ||
+                          family.section === "working";
                         const rowVariant =
-                          folderRow || familyParent || familyChildren?.length
+                          folderRow || family.inFamily
                             ? folderRowsMultiline
                               ? "folder-multiline"
                               : "folder"
@@ -3647,35 +3572,23 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
                             }
                             thread={thread}
                             variant={rowVariant}
-                            familyDepth={familyDepth}
-                            familyExpanded={
-                              familyChildren?.length
-                                ? familyExpandedByKey[threadKey] !== false
-                                : undefined
-                            }
+                            familyDepth={family.depth}
+                            familyExpanded={family.expanded}
                             onToggleFamily={toggleThreadFamily}
-                            hiddenDescendants={
-                              families !== null && familyExpandedByKey[threadKey] === false
-                                ? flattenSidebarThreadFamilies(
-                                    families,
-                                    familyChildren ?? [],
-                                    {},
-                                  ).map((row) => row.thread)
-                                : undefined
-                            }
+                            hiddenDescendants={family.hiddenDescendants}
                             navigationParent={
-                              familyParent ??
+                              family.parent ??
                               folderRow ??
-                              (displaySection === "working" ||
-                              displaySection === "snoozed" ||
-                              displaySection === "settled"
-                                ? `shelf:${displaySection}`
+                              (section === "working" ||
+                              section === "snoozed" ||
+                              section === "settled"
+                                ? `shelf:${section}`
                                 : undefined)
                             }
                             variantAction={
-                              section === "snoozed"
+                              family.section === "snoozed"
                                 ? "unsnooze"
-                                : section === "settled"
+                                : family.section === "settled"
                                   ? "unsettle"
                                   : "settle"
                             }

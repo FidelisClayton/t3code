@@ -43,8 +43,6 @@ import {
   AlarmClockOffIcon,
   ArrowRightLeftIcon,
   CheckIcon,
-  ChevronRightIcon,
-  ChevronDownIcon,
   CircleAlertIcon,
   CircleCheckIcon,
   CircleDashedIcon,
@@ -98,7 +96,6 @@ import {
   type SidebarDropVerb,
   resolveSidebarRowStatus,
   resolveThreadLastVisitedAt,
-  resolveSidebarFolderDot,
   shouldRecedeSidebarThread,
   resolveWorkingStartedAt,
   useRetainedValue,
@@ -136,6 +133,12 @@ import { observeVisibleAnimation } from "~/lib/visibleAnimation";
 import { useThreadHasUnsentDraft } from "../../composerDraftStore";
 import { ThreadDetailsIssueRows } from "../chat/ThreadDetailsIssueRows";
 import { IssueGlyph, issueStatePresentation } from "../issue/issuePresentation";
+import {
+  familyRowIndent,
+  SidebarDescendantAttentionBadge,
+  SidebarFamilyDisclosure,
+  type SidebarFamilyRowProps,
+} from "./SidebarFamilyRowParts";
 
 // The fields thread rows show. Provider status pushes refresh `checkedAt`,
 // status and auth on every provider; leaving those out keeps each
@@ -583,16 +586,12 @@ function TopStatusIcon(props: { icon: keyof typeof TOP_STATUS_ICONS; className: 
   return <Icon aria-hidden className={cn("shrink-0", props.className)} />;
 }
 
-type SidebarThreadRowProps = {
+type SidebarThreadRowProps = SidebarFamilyRowProps & {
   thread: SidebarThreadSummary;
   // "folder" is a one-line row inside a boring sidebar project folder;
   // "folder-multiline" adds the card's environment and PR line under it.
   variant: "card" | "slim" | "folder" | "folder-multiline";
   navigationParent?: string | undefined;
-  familyDepth?: number;
-  familyExpanded?: boolean | undefined;
-  onToggleFamily?: ((key: string) => void) | undefined;
-  hiddenDescendants?: readonly SidebarThreadSummary[] | undefined;
   variantAction: SidebarSweepAction;
   settlementSupported: boolean;
   snoozeSupported: boolean;
@@ -731,18 +730,6 @@ const SidebarThreadRow = memo(function SidebarThreadRow(props: SidebarThreadRowP
   const isRegeneratingTitle = thread.titleRegeneration != null;
   const localLastVisitedAt = useUiStateStore((state) => state.threadLastVisitedAtById[threadKey]);
   const lastVisitedAt = resolveThreadLastVisitedAt(thread.lastVisitedAt, localLastVisitedAt);
-  const localVisits = useUiStateStore((state) =>
-    props.hiddenDescendants?.length ? state.threadLastVisitedAtById : undefined,
-  );
-  const descendantAttention = resolveSidebarFolderDot(
-    (props.hiddenDescendants ?? []).map((descendant) => ({
-      ...descendant,
-      lastVisitedAt: resolveThreadLastVisitedAt(
-        descendant.lastVisitedAt,
-        localVisits?.[scopedThreadKey(scopeThreadRef(descendant.environmentId, descendant.id))],
-      ),
-    })),
-  );
   const isSelected = useThreadSelectionStore((state) => state.selectedThreadKeys.has(threadKey));
   const openPrLink = useOpenPrLink();
   const runningTerminalIds = useThreadRunningTerminalIds({
@@ -1353,9 +1340,7 @@ const SidebarThreadRow = memo(function SidebarThreadRow(props: SidebarThreadRowP
                 data-sidebar-row={threadKey}
                 data-sidebar-parent={props.navigationParent}
                 aria-expanded={props.familyExpanded}
-                style={
-                  inFolder ? { paddingInlineStart: 36 + (props.familyDepth ?? 0) * 16 } : undefined
-                }
+                style={familyRowIndent(inFolder, props.familyDepth)}
                 aria-label={accessibility.label}
                 aria-current={accessibility.current}
                 data-testid={inFolder ? "sidebar-row-folder" : "sidebar-row-slim"}
@@ -1378,30 +1363,10 @@ const SidebarThreadRow = memo(function SidebarThreadRow(props: SidebarThreadRowP
             {/* `contents` keeps one-line rows a single flex row. */}
             <div className={multiline ? "flex h-6 min-w-0 items-center gap-2.5" : "contents"}>
               {props.familyExpanded === undefined ? null : (
-                <span className="relative -ms-6 size-3.5 shrink-0">
-                  <button
-                    type="button"
-                    tabIndex={-1}
-                    data-sidebar-disclosure
-                    aria-label={
-                      props.familyExpanded
-                        ? gt("Collapse created threads")
-                        : gt("Expand created threads")
-                    }
-                    aria-expanded={props.familyExpanded}
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      props.onToggleFamily?.(threadKey);
-                    }}
-                    className="absolute -start-1.25 [inset-block-start:-5px] flex size-6 cursor-pointer items-center justify-center rounded-sm text-secondary-label active:text-foreground focus-visible:outline-2 focus-visible:outline-ring [@media(pointer:coarse)]:h-8 [@media(pointer:coarse)]:[inset-block-start:-9px]"
-                  >
-                    {props.familyExpanded ? (
-                      <ChevronDownIcon aria-hidden className="size-3.5" />
-                    ) : (
-                      <ChevronRightIcon aria-hidden className="size-3.5" />
-                    )}
-                  </button>
-                </span>
+                <SidebarFamilyDisclosure
+                  expanded={props.familyExpanded}
+                  onToggle={() => props.onToggleFamily?.(threadKey)}
+                />
               )}
               {inFolder ? null : (
                 <span
@@ -1420,28 +1385,7 @@ const SidebarThreadRow = memo(function SidebarThreadRow(props: SidebarThreadRowP
               {title}
               {multiline ? titleLineIcons : null}
               {pinIndicator}
-              {descendantAttention === null ? null : (
-                <span
-                  role="status"
-                  aria-label={gt("Created threads: {state}", {
-                    state: {
-                      attention: gt("needs you"),
-                      failed: gt("failed"),
-                      unread: gt("done"),
-                      working: gt("working"),
-                    }[descendantAttention],
-                  })}
-                  className={cn(
-                    "size-1.5 shrink-0 rounded-full",
-                    {
-                      attention: "bg-warning",
-                      failed: "bg-error",
-                      unread: "bg-success",
-                      working: "bg-info",
-                    }[descendantAttention],
-                  )}
-                />
-              )}
+              <SidebarDescendantAttentionBadge hiddenDescendants={props.hiddenDescendants} />
               {multiline ? null : terminalStatusIcon}
               {multiline ? null : issueBadge}
               {isRegeneratingTitle ? (
