@@ -3,7 +3,11 @@ import { AsyncResult, Atom, AtomRegistry } from "effect/reactivity";
 import { RegistryContext } from "@effect/atom-react";
 import type { OrchestrationV2GetMarkdownReferenceResult } from "@t3tools/contracts";
 import { MarkdownReferenceProvider } from "./chat/custom-blocks/MarkdownReferenceScope";
-import { MarkdownChatHandlersContext } from "./chat/custom-blocks/MarkdownChatHandlers";
+import {
+  MarkdownChatHandlersContext,
+  MarkdownChatHandlersProvider,
+} from "./chat/custom-blocks/MarkdownChatHandlers";
+import { toastManager } from "./ui/toast";
 import { useState } from "react";
 import {
   updateMarkdownChoiceDraft,
@@ -1239,4 +1243,86 @@ it("renders recap details, briefings and scoped work links independently", async
     expect(screen.container.querySelector(".markdown-recap")).toBeNull();
     expect(screen.container.querySelector("pre")).not.toBeNull();
   }
+});
+
+describe("ChatMarkdown fork handlers", () => {
+  const formFence =
+    "```form\n" +
+    JSON.stringify({
+      title: "Trip",
+      fields: [{ type: "text", name: "destination", label: "Destination" }],
+    }) +
+    "\n```";
+
+  it("shows choice links as text and recap fences as code unless custom blocks are opted in", async () => {
+    setup();
+    const recap = "```recap\n" + JSON.stringify({ lead: "Lead", items: [] }) + "\n```";
+    await using screen = await renderText(`[Parallel](choice:g/a)\n\n${recap}`);
+    expect(screen.container.querySelector("[role=radio]")).toBeNull();
+    expect(screen.container.textContent).toContain("Parallel");
+    expect(screen.container.querySelector("pre")).not.toBeNull();
+  });
+
+  it("keeps a form disabled where no host provides a message handler", async () => {
+    setup();
+    await using screen = await render(
+      <ChatMarkdown cwd="/workspace" text={formFence} customBlocks />,
+    );
+    await expect.element(screen.getByRole("button", { name: "Send answers" })).toBeDisabled();
+    await screen.rerender(
+      <MarkdownChatHandlersContext value={{ onSendAppMessage: vi.fn() }}>
+        <ChatMarkdown cwd="/workspace" text={formFence} customBlocks />
+      </MarkdownChatHandlersContext>,
+    );
+    await expect.element(screen.getByRole("button", { name: "Send answers" })).toBeEnabled();
+  });
+
+  it("warns when the composer refuses a choice and saves it locally without a provider", async () => {
+    setup();
+    const warn = vi.spyOn(toastManager, "add").mockReturnValue("toast" as never);
+    const threadRef = {
+      environmentId: EnvironmentId.make("handlers-env"),
+      threadId: ThreadId.make("handlers-thread"),
+    };
+    const messageId = MessageId.make("handlers-message");
+    localStorage.removeItem(
+      `t3code:markdown-choices:v1:${JSON.stringify([threadRef.environmentId, threadRef.threadId, messageId])}`,
+    );
+    const markdown = (
+      <div data-assistant-citation-viewport="true">
+        <div
+          data-assistant-citation-source={messageId}
+          data-assistant-citation-environment={threadRef.environmentId}
+          data-assistant-citation-thread={threadRef.threadId}
+        >
+          <ChatMarkdown
+            cwd="/workspace"
+            text="[Parallel](choice:g/a)"
+            customBlocks
+            threadRef={threadRef}
+            messageId={messageId}
+          />
+        </div>
+      </div>
+    );
+    const composerRef = { current: { updateChoiceDraft: vi.fn(() => false) } };
+    await using screen = await render(
+      <MarkdownChatHandlersProvider composerRef={composerRef as never} onSendAppMessage={undefined}>
+        {markdown}
+      </MarkdownChatHandlersProvider>,
+    );
+    const phrase = screen.getByRole("radio", { name: "Parallel", exact: true });
+    await userEvent.click(phrase);
+    expect(composerRef.current.updateChoiceDraft).toHaveBeenCalledTimes(1);
+    expect(warn).toHaveBeenCalledWith(expect.objectContaining({ type: "warning" }));
+    await expect.element(phrase).toHaveAttribute("aria-checked", "false");
+    warn.mockClear();
+    await screen.rerender(markdown);
+    await userEvent.click(screen.getByRole("radio", { name: "Parallel", exact: true }));
+    expect(warn).not.toHaveBeenCalled();
+    await expect
+      .element(screen.getByRole("radio", { name: "Parallel", exact: true }))
+      .toHaveAttribute("aria-checked", "true");
+    warn.mockRestore();
+  });
 });

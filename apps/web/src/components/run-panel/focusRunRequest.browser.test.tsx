@@ -10,7 +10,7 @@ vi.mock(import("../ChatMarkdown"), () => ({
 }));
 import { render } from "../../../test/render";
 import { ComposerPendingUserInputPanel } from "../chat/ComposerPendingUserInputPanel";
-import { useRunResponseFocus } from "./RunPanel";
+import { useRunPanelChatControls, useRunResponseFocus } from "./RunPanel";
 
 it.each([0, 180])(
   "reveals a collapsed question after the Sheet closes (%i ms)",
@@ -111,5 +111,48 @@ it.each([0, 180])(
     await expect.element(page.getByRole("button", { name: "Respond in chat" })).toBeVisible();
     await userEvent.keyboard("{Escape}");
     await expect.element(screen.getByRole("button", { name: "Open Run" })).toHaveFocus();
+  },
+);
+
+it.each([false, true])(
+  "Respond in chat scrolls to the end, then focuses the composer inline or closes the sheet (sheet: %s)",
+  async (usesSheet) => {
+    const scrollToEnd = vi.fn();
+    const closePanel = vi.fn();
+    const focusComposer = vi.fn();
+    function Controls() {
+      const [composer, setComposer] = useState<HTMLDivElement | null>(null);
+      const controls = useRunPanelChatControls({
+        threadRef: null,
+        buttonOpen: false,
+        scrollToEnd,
+        usesSheet,
+        closePanel,
+        scopeKey: "parent",
+        open: true,
+        present: true,
+        composer,
+        focusComposer,
+      });
+      return (
+        <div ref={setComposer}>
+          <button type="button" data-pending-user-input-toggle="expanded">
+            Question
+          </button>
+          <button type="button" onClick={controls.onRespondInChat}>
+            Respond in chat
+          </button>
+        </div>
+      );
+    }
+    await using screen = await render(<Controls />);
+    await screen.getByRole("button", { name: "Respond in chat" }).click();
+    expect(scrollToEnd).toHaveBeenCalledWith(true);
+    if (usesSheet) {
+      expect(closePanel).toHaveBeenCalledTimes(1);
+    } else {
+      expect(closePanel).not.toHaveBeenCalled();
+      await expect.element(screen.getByRole("button", { name: "Question" })).toHaveFocus();
+    }
   },
 );
