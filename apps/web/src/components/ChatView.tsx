@@ -52,7 +52,6 @@ import { recallCheckoutIsRepo, rememberCheckoutIsRepo } from "./ChatView.logic";
 import { useLogicalProjectEnvironments } from "../hooks/useLogicalProjectEnvironments";
 import { useStableCallback } from "../hooks/useStableCallback";
 import { useProjectScriptEditing } from "./chat/useProjectScriptEditing";
-import { RunPanelButton, focusRunRequest, useRunResponseFocus } from "./run-panel/RunPanel";
 import { RightPanelSurfaceContent } from "./chat/RightPanelSurfaceContent";
 import { usePendingThreadRequests } from "./chat/usePendingThreadRequests";
 import { isScratchProject } from "@t3tools/client-runtime/state/projects";
@@ -429,6 +428,7 @@ const ACTIVE_RUN_STATUSES: ReadonlySet<string> = new Set([
 const EMPTY_PROVIDER_MODELS: ServerProvider["models"] = [];
 const EMPTY_USAGE_LIMIT_SOURCES: UsageLimitSourceSnapshots = [];
 import type { CodexArtifactTemplate } from "@t3tools/shared/codexArtifactTemplates";
+import { useRunPanelChatControls } from "./run-panel/RunPanel";
 
 const EMPTY_FEEDBACK_SUBMISSIONS: ReadonlyArray<CodexFeedbackSubmission> = [];
 const EMPTY_PROVIDER_SKILLS: ServerProvider["skills"] = [];
@@ -1979,13 +1979,6 @@ export default function ChatView(props: ChatViewProps) {
 
   const { focusComposer: focusComposerStable, scheduleComposerFocus: scheduleComposerFocusStable } =
     useComposerFocus(composerRef);
-  const runResponseFocus = useRunResponseFocus({
-    scopeKey: routeThreadKey,
-    open: rightPanelOpen,
-    present: rightPanelPresent,
-    composer: composerOverlayElement,
-    focusComposer: focusComposerStable,
-  });
   const canInterruptRunningThread =
     canOperateThread && deriveCanInterruptRunningThread(activeThread !== undefined, activeRuntime);
   const onInterrupt = async () => {
@@ -3445,6 +3438,19 @@ export default function ChatView(props: ChatViewProps) {
     runShellCommand: runSideChatShellCommandStable,
   };
 
+  const runPanel = useRunPanelChatControls({
+    threadRef: isServerThread && !embedded ? activeThreadRef : null,
+    buttonOpen: rightPanelOpen && activeRightPanelSurface?.kind === "run",
+    scrollToEnd,
+    usesSheet: shouldUsePlanSidebarSheet,
+    closePanel: closePreviewPanelStable,
+    scopeKey: routeThreadKey,
+    open: rightPanelOpen,
+    present: rightPanelPresent,
+    composer: composerOverlayElement,
+    focusComposer: focusComposerStable,
+  });
+
   if (!activeThread) {
     return embedded ? null : <NoActiveThreadState />;
   }
@@ -3463,16 +3469,7 @@ export default function ChatView(props: ChatViewProps) {
       workspaceRevision={workspaceRevision.revision}
       getShortcutContext={getShortcutContextStable}
       onSendAnnotation={sendPreviewAnnotationStable}
-      onRespondInChat={() => {
-        scrollToEnd(true);
-        if (shouldUsePlanSidebarSheet) {
-          runResponseFocus.requestFocus();
-          closePreviewPanelStable();
-        } else {
-          const target = focusRunRequest(composerOverlayElement, focusComposerStable);
-          if (target) target.focus();
-        }
-      }}
+      onRespondInChat={runPanel.onRespondInChat}
       onCloseSurface={closeRightPanelSurface}
       sideChatParentPanel={sideChatParentPanel}
       terminal={{
@@ -3530,12 +3527,7 @@ export default function ChatView(props: ChatViewProps) {
   } satisfies PanelLayoutControlsProps;
   const panelToggleControls = (
     <>
-      {isServerThread && activeThreadRef && !embedded ? (
-        <RunPanelButton
-          threadRef={activeThreadRef}
-          open={rightPanelOpen && activeRightPanelSurface?.kind === "run"}
-        />
-      ) : null}
+      {runPanel.button}
       <PanelLayoutControls
         {...panelToggleControlProps}
         showThreadPanelControl={!inlineRightPanelOwnsTitleBar}
@@ -4253,7 +4245,7 @@ export default function ChatView(props: ChatViewProps) {
           widthStorageKey={`t3code:preview-panel-width:${activeThreadKey}`}
           sheetAnimationDurationMs={panelAnimationsActive ? panelAnimationDurationMs : 0}
           onCloseSheet={closePreviewPanelStable}
-          onCloseFocus={runResponseFocus.onCloseFocus}
+          onCloseFocus={runPanel.onCloseFocus}
           open={rightPanelOpen}
           keybindings={keybindings}
           getShortcutContext={getShortcutContextStable}

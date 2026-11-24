@@ -727,6 +727,39 @@ export function useRunResponseFocus({
   };
 }
 
+/** ChatView's Run panel wiring: the header button, "Respond in chat", and focus after the sheet closes. */
+export function useRunPanelChatControls({
+  threadRef,
+  buttonOpen,
+  scrollToEnd,
+  usesSheet,
+  closePanel,
+  ...focusInput
+}: {
+  /** Null when the thread has no Run panel. */
+  threadRef: ScopedThreadRef | null;
+  buttonOpen: boolean;
+  scrollToEnd: (animated: boolean) => void;
+  usesSheet: boolean;
+  closePanel: () => void;
+} & Parameters<typeof useRunResponseFocus>[0]) {
+  const responseFocus = useRunResponseFocus(focusInput);
+  return {
+    button: threadRef ? <RunPanelButton threadRef={threadRef} open={buttonOpen} /> : null,
+    onRespondInChat: () => {
+      scrollToEnd(true);
+      if (usesSheet) {
+        responseFocus.requestFocus();
+        closePanel();
+      } else {
+        const target = focusRunRequest(focusInput.composer, focusInput.focusComposer);
+        if (target) target.focus();
+      }
+    },
+    onCloseFocus: responseFocus.onCloseFocus,
+  };
+}
+
 export function focusRunRequest(
   composer: HTMLElement | null,
   focusComposer: () => void,
