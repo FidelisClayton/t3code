@@ -3608,7 +3608,7 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
                               actionSweep?.keys.has(threadKey) ? actionSweep.action : null
                             }
                             snoozeWakeLabelText={
-                              section === "snoozed" && thread.snoozedUntil != null
+                              family.section === "snoozed" && thread.snoozedUntil != null
                                 ? snoozeWakeLabel(
                                     thread.snoozedUntil,
                                     { now: new Date().toISOString() },

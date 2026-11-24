@@ -1,6 +1,8 @@
+import type { EnvironmentServerConfig } from "@t3tools/client-runtime/connection";
 import { scopedThreadKey, scopeThreadRef } from "@t3tools/client-runtime/environment";
 import { presentThreadShell } from "@t3tools/client-runtime/state/models";
 import { DEFAULT_CLIENT_SETTINGS, EnvironmentId, ProjectId, ThreadId } from "@t3tools/contracts";
+import * as DateTime from "effect/DateTime";
 import { describe, expect, it, vi } from "vite-plus/test";
 import { userEvent } from "vite-plus/test/browser";
 
@@ -9,7 +11,7 @@ import { makeThreadFixture } from "../test-fixtures";
 import { useHandleNewThread } from "../hooks/useHandleNewThread";
 import { __setClientSettingsForTests, getClientSettings } from "../hooks/useSettings";
 import { useThreadRouteTarget } from "../hooks/useThreadRouteTarget";
-import { useProjects, useQuietThreadShells } from "../state/entities";
+import { useProjects, useQuietThreadShells, useServerConfigs } from "../state/entities";
 import { useUiStateStore } from "../uiStateStore";
 import type { Project } from "../types";
 import Sidebar from "./Sidebar";
@@ -155,5 +157,62 @@ describe("Boring thread disclosure", () => {
     await vi.waitFor(() =>
       expect(screen.router!.state.location.pathname).toBe("/local/Grandchild"),
     );
+  });
+
+  it("shows the wake time of a snoozed created child nested under an active parent", async () => {
+    using stack = new DisposableStack();
+    const previousSettings = getClientSettings();
+    const previousUiState = useUiStateStore.getState();
+    stack.defer(() => {
+      __setClientSettingsForTests(previousSettings);
+      useUiStateStore.setState(previousUiState);
+      vi.mocked(useQuietThreadShells).mockReset();
+      vi.mocked(useThreadRouteTarget).mockReset();
+      vi.mocked(useServerConfigs).mockReset();
+    });
+    __setClientSettingsForTests({ ...DEFAULT_CLIENT_SETTINGS, boringSidebarEnabled: true });
+    const owner = project("family-project");
+    const thread = (id: string, children: string[] = [], snoozedUntil: string | null = null) =>
+      presentThreadShell(owner.environmentId, {
+        ...makeThreadFixture().source,
+        id: ThreadId.make(id),
+        title: id,
+        projectId: owner.id,
+        createdThreadIds: children.map((id) => ThreadId.make(id)),
+        snoozedUntil: snoozedUntil === null ? null : DateTime.makeUnsafe(snoozedUntil),
+      });
+    const threads = [thread("Parent", ["Child"]), thread("Child", [], "2999-01-01T00:00:00.000Z")];
+    const parentKey = scopedThreadKey(scopeThreadRef(owner.environmentId, ThreadId.make("Parent")));
+    const childKey = scopedThreadKey(scopeThreadRef(owner.environmentId, ThreadId.make("Child")));
+    useUiStateStore.setState({
+      projectExpandedById: {},
+      sidebarProjectScopeKeys: [],
+      sidebarThreadExpandedByKey: { [parentKey]: true },
+    });
+    vi.mocked(useServerConfigs).mockReturnValue(
+      new Map([[owner.environmentId, {} as unknown as EnvironmentServerConfig]]),
+    );
+    vi.mocked(useProjects).mockReturnValue([owner]);
+    vi.mocked(useQuietThreadShells).mockReturnValue(threads);
+    vi.mocked(useThreadRouteTarget).mockReturnValue({ kind: "none" } as never);
+    vi.mocked(useHandleNewThread).mockReturnValue({
+      activeDraftThread: null,
+      activeThread: null,
+      defaultProjectRef: { environmentId: owner.environmentId, projectId: owner.id },
+      defaultProjectFallbackReady: true,
+      handleNewThread: vi.fn(),
+      routeDraftId: null,
+      routeThreadRef: null,
+    });
+    await using screen = await render(
+      <SidebarProvider>
+        <Sidebar routeReveal={{ observedKey: null, pendingKey: null }} />
+      </SidebarProvider>,
+    );
+    await vi.waitFor(() => {
+      const row = screen.container.querySelector<HTMLElement>(`[data-sidebar-row="${childKey}"]`);
+      expect(row).not.toBeNull();
+      expect(row!.querySelector(".text-info-foreground")).not.toBeNull();
+    });
   });
 });
