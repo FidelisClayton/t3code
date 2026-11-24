@@ -34,6 +34,7 @@ import {
   type MarkdownChoiceState,
 } from "./markdownChoiceState";
 import type { MarkdownChoiceDraftUpdate, MarkdownChoiceSource } from "./markdownChoiceDraft";
+import "./MarkdownChoices.css";
 
 const MarkdownChoicesContext = createContext<{
   rootRef: RefObject<HTMLElement | null>;

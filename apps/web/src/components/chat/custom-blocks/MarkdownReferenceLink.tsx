@@ -1,3 +1,4 @@
+/* oxlint-disable shadcn/no-unknown-classes -- Feature-local styles are imported from MarkdownReferenceLink.css. */
 import type {
   OrchestrationV2GetMarkdownReferenceResult,
   ScopedThreadRef,
@@ -15,6 +16,7 @@ import {
   PopoverTrigger,
 } from "../../ui/popover";
 import { useMarkdownReference } from "./MarkdownReferenceScope";
+import "./MarkdownReferenceLink.css";
 
 export function MarkdownReferenceLink({
   id,

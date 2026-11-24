@@ -1,0 +1,6 @@
+@media (hover: hover) and (pointer: fine) {
+  /* Keep above-phrase comment chips inside the virtual row's paint bounds. */
+  [data-assistant-citation-source]:has(button[data-choice-message]) {
+    padding-block-start: 1.5rem;
+  }
+}

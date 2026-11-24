@@ -1,0 +1,33 @@
+.chat-markdown .markdown-reference-label {
+  display: inline;
+  font: inherit;
+  color: inherit;
+  text-align: inherit;
+  white-space: normal;
+  cursor: pointer;
+  background-image: radial-gradient(
+    circle,
+    color-mix(in oklch, currentcolor 55%, transparent) 0.75px,
+    transparent 1px
+  );
+  background-position: left bottom;
+  background-repeat: repeat-x;
+  background-size: 4px 2px;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+
+.chat-markdown .markdown-reference-label:is(:focus-visible, :active, [data-popup-open]) {
+  background-image: radial-gradient(circle, currentcolor 0.75px, transparent 1px);
+}
+
+.chat-markdown .markdown-reference-label:focus-visible {
+  outline: 2px solid currentcolor;
+  outline-offset: 2px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .chat-markdown .markdown-reference-label:hover {
+    background-image: radial-gradient(circle, currentcolor 0.75px, transparent 1px);
+  }
+}
