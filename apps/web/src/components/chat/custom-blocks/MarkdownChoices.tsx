@@ -16,7 +16,7 @@ import type { Element, ElementContent } from "hast";
 import { hastPlainTextDeep } from "../markdownHast.logic";
 import { cn } from "~/lib/utils";
 import { Popover, PopoverPopup, PopoverTrigger } from "../../ui/popover";
-import { AssistantCitationCommentEditor } from "../AssistantCitationCommentEditor";
+import { ChoiceCommentEditor } from "./ChoiceCommentEditor";
 import { resolveAssistantCitationCommentDismissal } from "../assistantCitationCommentDismissal";
 import {
   analyzeMarkdownChoices,
@@ -454,9 +454,9 @@ function MarkdownChoiceComment({
                 ))}
               </div>
             ) : null}
-            <AssistantCitationCommentEditor
+            <ChoiceCommentEditor
               key={key}
-              citation={{ comment }}
+              comment={comment}
               inputRef={inputRef}
               onDraftChange={(value) => {
                 draftRef.current = value;
