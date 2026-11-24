@@ -12843,5 +12843,28 @@
     ")"
   ],
   "33d18dda74f6d7b3": "Annuler la fusion automatique de la pile",
-  "012c67c7f1a99e33": "Fusion automatique de la pile"
+  "012c67c7f1a99e33": "Fusion automatique de la pile",
+  "380f4ce45e27b2c8": "A un commentaire",
+  "5bfdaa1daef7e4cc": "Modifier le commentaire sur {target}",
+  "b935ce06745013f2": "Commenter {target}",
+  "9bacb8bbeff7c951": "Modifier le commentaire",
+  "baf39fdb0d59a7f1": "Commenter",
+  "c5e89984ac75a10c": "Source du commentaire",
+  "aa962d7d2e1fd3d1": "{label} est obligatoire.",
+  "227875b3c8d33bc8": "Impossible d’envoyer les réponses. Réessayez.",
+  "6f321f153b8711bb": "Choisir une option",
+  "b8bbc01bccdb7909": "Réponses envoyées",
+  "b1af8bb683083a11": "Envoyer les réponses",
+  "59cba207c1edade5": "Réponses envoyées",
+  "ef0ffbc0fae94504": "Rendu HTML",
+  "9e028583f649474b": "Ouvrir {label} {kind}",
+  "e6fdba3ecc6729b8": ", puis ",
+  "a4bae6415c19c5cc": "Un à la fois :",
+  "971403915db539ca": "Référence",
+  "b9ab529a7280b79c": "Fermer le point de situation",
+  "8954ac2d96e104a6": [
+    "Impossible de charger cette référence : ",
+    { "i": 1, "k": "_gt_value_1", "v": "v" }
+  ],
+  "242427b4e6453a93": "Chargement de la référence…"
 }

@@ -4,6 +4,7 @@ import {
   HTML_RENDER_MIN_HEIGHT,
   injectHtmlRenderBootstrap,
 } from "@t3tools/shared/htmlRender";
+import { useGT } from "gt-react";
 import { useEffect, useState } from "react";
 
 import { HtmlRenderDocument } from "../../files/BrowserDocumentFrame";
@@ -13,6 +14,7 @@ export function MarkdownHtmlBlock(props: { html: string; threadRef?: ScopedThrea
 }
 
 function MarkdownHtmlDocument(props: { html: string; threadRef?: ScopedThreadRef }) {
+  const gt = useGT();
   const [src, setSrc] = useState<string | null>(null);
   const [height, setHeight] = useState(HTML_RENDER_MIN_HEIGHT);
   const { html } = props;
@@ -31,7 +33,7 @@ function MarkdownHtmlDocument(props: { html: string; threadRef?: ScopedThreadRef
       {src !== null ? (
         <HtmlRenderDocument
           src={src}
-          title="HTML render"
+          title={gt("HTML render")}
           threadRef={props.threadRef}
           className="block size-full"
           onContentHeight={(contentHeight) => setHeight(clampHtmlRenderHeight(contentHeight))}

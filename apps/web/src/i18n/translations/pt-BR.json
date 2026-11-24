@@ -12843,5 +12843,28 @@
     ")"
   ],
   "33d18dda74f6d7b3": "Cancelar merge automático da pilha",
-  "012c67c7f1a99e33": "Merge automático da pilha"
+  "012c67c7f1a99e33": "Merge automático da pilha",
+  "380f4ce45e27b2c8": "Tem comentário",
+  "5bfdaa1daef7e4cc": "Editar comentário em {target}",
+  "b935ce06745013f2": "Comentar em {target}",
+  "9bacb8bbeff7c951": "Editar comentário",
+  "baf39fdb0d59a7f1": "Comentar",
+  "c5e89984ac75a10c": "Origem do comentário",
+  "aa962d7d2e1fd3d1": "{label} é obrigatório.",
+  "227875b3c8d33bc8": "Não foi possível enviar as respostas. Tente novamente.",
+  "6f321f153b8711bb": "Escolha uma opção",
+  "b8bbc01bccdb7909": "Respostas enviadas",
+  "b1af8bb683083a11": "Enviar respostas",
+  "59cba207c1edade5": "Respostas enviadas",
+  "ef0ffbc0fae94504": "Renderização HTML",
+  "9e028583f649474b": "Abrir {label} {kind}",
+  "e6fdba3ecc6729b8": ", depois ",
+  "a4bae6415c19c5cc": "Um de cada vez:",
+  "971403915db539ca": "Referência",
+  "b9ab529a7280b79c": "Fechar resumo",
+  "8954ac2d96e104a6": [
+    "Não foi possível carregar esta referência: ",
+    { "i": 1, "k": "_gt_value_1", "v": "v" }
+  ],
+  "242427b4e6453a93": "Carregando referência…"
 }

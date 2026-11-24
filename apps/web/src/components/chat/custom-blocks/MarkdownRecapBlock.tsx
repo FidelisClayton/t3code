@@ -3,6 +3,7 @@
 import type { ScopedThreadRef } from "@t3tools/contracts";
 import { Link } from "@tanstack/react-router";
 import { ArrowUpRightIcon, GitBranchIcon } from "lucide-react";
+import { T, useGT } from "gt-react";
 import type { ReactNode } from "react";
 import { buildThreadRouteParams } from "../../../threadRoutes";
 import { MarkdownReferenceLink } from "./MarkdownReferenceLink";
@@ -20,6 +21,7 @@ export function MarkdownRecapBlock({
   namedReferences: boolean;
   renderMarkdown: (body: string, namedReferences?: boolean, sourceChoices?: boolean) => ReactNode;
 }) {
+  const gt = useGT();
   const label = (entry: { label: string; reference?: string }) =>
     entry.reference && namedReferences ? (
       <MarkdownReferenceLink
@@ -63,27 +65,29 @@ export function MarkdownRecapBlock({
                 className="markdown-recap-work"
                 to="/$environmentId/$threadId"
                 params={buildThreadRouteParams(item.work.ref)}
-                aria-label={`Open ${item.label} ${item.work.kind}`}
+                aria-label={gt("Open {label} {kind}", { label: item.label, kind: item.work.kind })}
               >
                 {item.work.kind === "thread" ? (
                   <ArrowUpRightIcon aria-hidden="true" />
                 ) : (
                   <GitBranchIcon aria-hidden="true" />
                 )}
-                {item.work.kind === "thread" ? "Thread" : "Subagent"}
+                {item.work.kind === "thread" ? gt("Thread") : gt("Subagent")}
               </Link>
             ) : null}
           </div>
         ))}
         {recap.next ? (
           <div className="markdown-recap-row">
-            <span className="markdown-recap-next">Next</span>
+            <span className="markdown-recap-next">
+              <T>Next</T>
+            </span>
             <p className="markdown-recap-sequence">
               <i className="markdown-recap-marker next" aria-hidden="true" />
-              One at a time:{" "}
+              <T>One at a time:</T>{" "}
               {recap.next.map((entry, index) => (
                 <span key={index}>
-                  {index > 0 ? ", then " : ""}
+                  {index > 0 ? gt(", then ") : ""}
                   {label(entry)}
                 </span>
               ))}

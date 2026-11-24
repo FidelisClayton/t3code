@@ -12850,5 +12850,28 @@
     ")"
   ],
   "33d18dda74f6d7b3": "Avbryt automatisk merge för stacken",
-  "012c67c7f1a99e33": "Merga stacken automatiskt"
+  "012c67c7f1a99e33": "Merga stacken automatiskt",
+  "380f4ce45e27b2c8": "Har en kommentar",
+  "5bfdaa1daef7e4cc": "Redigera kommentar på {target}",
+  "b935ce06745013f2": "Kommentera {target}",
+  "9bacb8bbeff7c951": "Redigera kommentar",
+  "baf39fdb0d59a7f1": "Kommentera",
+  "c5e89984ac75a10c": "Kommentarens källa",
+  "aa962d7d2e1fd3d1": "{label} är obligatoriskt.",
+  "227875b3c8d33bc8": "Svaren kunde inte skickas. Försök igen.",
+  "6f321f153b8711bb": "Välj ett alternativ",
+  "b8bbc01bccdb7909": "Svar skickade",
+  "b1af8bb683083a11": "Skicka svar",
+  "59cba207c1edade5": "Svar skickade",
+  "ef0ffbc0fae94504": "HTML-rendering",
+  "9e028583f649474b": "Öppna {label} {kind}",
+  "e6fdba3ecc6729b8": ", sedan ",
+  "a4bae6415c19c5cc": "En i taget:",
+  "971403915db539ca": "Referens",
+  "b9ab529a7280b79c": "Stäng sammanfattningen",
+  "8954ac2d96e104a6": [
+    "Den här referensen kunde inte läsas in: ",
+    { "i": 1, "k": "_gt_value_1", "v": "v" }
+  ],
+  "242427b4e6453a93": "Läser in referens…"
 }

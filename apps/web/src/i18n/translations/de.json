@@ -12843,5 +12843,28 @@
     ")"
   ],
   "33d18dda74f6d7b3": "Auto-Merge für Stack abbrechen",
-  "012c67c7f1a99e33": "Auto-Merge für Stack"
+  "012c67c7f1a99e33": "Auto-Merge für Stack",
+  "380f4ce45e27b2c8": "Hat einen Kommentar",
+  "5bfdaa1daef7e4cc": "Kommentar zu {target} bearbeiten",
+  "b935ce06745013f2": "Zu {target} kommentieren",
+  "9bacb8bbeff7c951": "Kommentar bearbeiten",
+  "baf39fdb0d59a7f1": "Kommentieren",
+  "c5e89984ac75a10c": "Kommentarquelle",
+  "aa962d7d2e1fd3d1": "{label} ist erforderlich.",
+  "227875b3c8d33bc8": "Antworten konnten nicht gesendet werden. Versuche es erneut.",
+  "6f321f153b8711bb": "Option wählen",
+  "b8bbc01bccdb7909": "Antworten gesendet",
+  "b1af8bb683083a11": "Antworten senden",
+  "59cba207c1edade5": "Antworten gesendet",
+  "ef0ffbc0fae94504": "HTML-Darstellung",
+  "9e028583f649474b": "{label} {kind} öffnen",
+  "e6fdba3ecc6729b8": ", dann ",
+  "a4bae6415c19c5cc": "Eins nach dem anderen:",
+  "971403915db539ca": "Referenz",
+  "b9ab529a7280b79c": "Briefing schließen",
+  "8954ac2d96e104a6": [
+    "Diese Referenz konnte nicht geladen werden: ",
+    { "i": 1, "k": "_gt_value_1", "v": "v" }
+  ],
+  "242427b4e6453a93": "Referenz wird geladen…"
 }

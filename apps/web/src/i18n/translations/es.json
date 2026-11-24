@@ -12838,5 +12838,28 @@
     ")"
   ],
   "33d18dda74f6d7b3": "Cancelar la fusión automática de la pila",
-  "012c67c7f1a99e33": "Fusión automática de la pila"
+  "012c67c7f1a99e33": "Fusión automática de la pila",
+  "380f4ce45e27b2c8": "Tiene un comentario",
+  "5bfdaa1daef7e4cc": "Editar comentario en {target}",
+  "b935ce06745013f2": "Comentar en {target}",
+  "9bacb8bbeff7c951": "Editar comentario",
+  "baf39fdb0d59a7f1": "Comentar",
+  "c5e89984ac75a10c": "Origen del comentario",
+  "aa962d7d2e1fd3d1": "{label} es obligatorio.",
+  "227875b3c8d33bc8": "No se pudieron enviar las respuestas. Inténtalo de nuevo.",
+  "6f321f153b8711bb": "Elige una opción",
+  "b8bbc01bccdb7909": "Respuestas enviadas",
+  "b1af8bb683083a11": "Enviar respuestas",
+  "59cba207c1edade5": "Respuestas enviadas",
+  "ef0ffbc0fae94504": "Vista HTML",
+  "9e028583f649474b": "Abrir {label} {kind}",
+  "e6fdba3ecc6729b8": ", luego ",
+  "a4bae6415c19c5cc": "Uno a la vez:",
+  "971403915db539ca": "Referencia",
+  "b9ab529a7280b79c": "Cerrar resumen",
+  "8954ac2d96e104a6": [
+    "No se pudo cargar esta referencia: ",
+    { "i": 1, "k": "_gt_value_1", "v": "v" }
+  ],
+  "242427b4e6453a93": "Cargando referencia…"
 }

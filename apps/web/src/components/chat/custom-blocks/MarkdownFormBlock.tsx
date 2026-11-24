@@ -1,3 +1,4 @@
+import { T, useGT } from "gt-react";
 import { useId, useState } from "react";
 import { Button } from "../../ui/button";
 import { Input } from "../../ui/input";
@@ -12,6 +13,7 @@ export function MarkdownFormBlock({
   form: MarkdownFormDefinition;
   onSendMessage?: ((text: string) => Promise<void>) | undefined;
 }) {
+  const gt = useGT();
   const id = useId();
   const [values, setValues] = useState<Record<string, string>>(() =>
     Object.fromEntries(form.fields.map((field) => [field.name, ""])),
@@ -29,7 +31,7 @@ export function MarkdownFormBlock({
         if (disabled || !onSendMessage) return;
         const missing = form.fields.find((field) => field.required && !values[field.name]);
         if (missing) {
-          setError(`${missing.label} is required.`);
+          setError(gt("{label} is required.", { label: missing.label }));
           return;
         }
         setStatus("pending");
@@ -38,7 +40,9 @@ export function MarkdownFormBlock({
           await onSendMessage(`${form.title}\n\n${JSON.stringify(values, null, 2)}`);
           setStatus("sent");
         } catch (cause) {
-          setError(cause instanceof Error ? cause.message : "Could not send answers. Try again.");
+          setError(
+            cause instanceof Error ? cause.message : gt("Could not send answers. Try again."),
+          );
           setStatus("idle");
         }
       }}
@@ -70,7 +74,7 @@ export function MarkdownFormBlock({
                 onValueChange={(value) => setValues({ ...values, [field.name]: value ?? "" })}
               >
                 <SelectTrigger id={fieldId}>
-                  <SelectValue placeholder="Choose an option" />
+                  <SelectValue placeholder={gt("Choose an option")} />
                 </SelectTrigger>
                 <SelectPopup>
                   {field.options.map((option, optionIndex) => (
@@ -90,14 +94,18 @@ export function MarkdownFormBlock({
           {error}
         </p>
       ) : null}
-      {status === "sent" ? <p role="status">Answers sent</p> : null}
+      {status === "sent" ? (
+        <p role="status">
+          <T>Answers sent</T>
+        </p>
+      ) : null}
       <div>
         <Button type="submit" disabled={disabled}>
           {status === "pending"
-            ? "Sending…"
+            ? gt("Sending…")
             : status === "sent"
-              ? "Answers sent"
-              : (form.submitLabel ?? "Send answers")}
+              ? gt("Answers sent")
+              : (form.submitLabel ?? gt("Send answers"))}
         </Button>
       </div>
     </form>

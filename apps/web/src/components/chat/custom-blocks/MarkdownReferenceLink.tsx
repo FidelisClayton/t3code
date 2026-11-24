@@ -3,6 +3,7 @@ import type {
   OrchestrationV2GetMarkdownReferenceResult,
   ScopedThreadRef,
 } from "@t3tools/contracts";
+import { T, useGT, Var } from "gt-react";
 import { XIcon } from "lucide-react";
 import { useRef, useState, type ReactNode } from "react";
 import { orchestrationEnvironment } from "../../../state/orchestration";
@@ -31,6 +32,7 @@ export function MarkdownReferenceLink({
   threadRef: ScopedThreadRef | undefined;
   renderBody: (body: string) => ReactNode;
 }) {
+  const gt = useGT();
   const local = useMarkdownReference(id);
   const [open, setOpen] = useState(false);
   const [pinned, setPinned] = useState(false);
@@ -131,7 +133,7 @@ export function MarkdownReferenceLink({
           <div className="rounded-md bg-popover p-1 text-sm">
             <div className="flex items-start gap-2">
               <div className="min-w-0 flex-1">
-                <PopoverTitle>{reference?.title ?? "Reference"}</PopoverTitle>
+                <PopoverTitle>{reference?.title ?? gt("Reference")}</PopoverTitle>
                 {reference?.summary ? (
                   <p className="[margin-block-start:--spacing(2)] text-muted-foreground">
                     {reference.summary}
@@ -139,7 +141,7 @@ export function MarkdownReferenceLink({
                 ) : null}
               </div>
               <PopoverClose
-                render={<Button variant="ghost" size="icon-xs" aria-label="Close briefing" />}
+                render={<Button variant="ghost" size="icon-xs" aria-label={gt("Close briefing")} />}
               >
                 <XIcon />
               </PopoverClose>
@@ -149,13 +151,19 @@ export function MarkdownReferenceLink({
                 renderBody(reference.body)
               ) : query.error ? (
                 <div role="alert">
-                  <p>Unable to load this reference: {query.error}</p>
+                  <p>
+                    <T>
+                      Unable to load this reference: <Var>{query.error}</Var>
+                    </T>
+                  </p>
                   <Button variant="ghost" size="sm" onClick={query.refresh}>
-                    Retry
+                    <T>Retry</T>
                   </Button>
                 </div>
               ) : (
-                <p role="status">Loading reference…</p>
+                <p role="status">
+                  <T>Loading reference…</T>
+                </p>
               )}
             </div>
           </div>

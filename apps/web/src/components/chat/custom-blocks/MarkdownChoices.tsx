@@ -1,3 +1,4 @@
+import { useGT } from "gt-react";
 import { useStableCallback } from "~/hooks/useStableCallback";
 import { CircleIcon, CircleDotIcon, SquareIcon, SquareCheckIcon } from "lucide-react";
 import {
@@ -205,6 +206,7 @@ export function MarkdownInlineChoice({
   children: ReactNode;
   label: string;
 }) {
+  const gt = useGT();
   const state = use(MarkdownChoicesContext);
   const choiceId = useId();
   const phraseRef = useRef<HTMLButtonElement>(null);
@@ -241,7 +243,7 @@ export function MarkdownInlineChoice({
         data-choice-group={choice.group}
         data-choice-value={choice.value}
         tabIndex={choice.mode === "multi" ? 0 : -1}
-        aria-description={comment ? "Has comment" : undefined}
+        aria-description={comment ? gt("Has comment") : undefined}
         className={cn(
           "inline cursor-pointer rounded-sm text-inherit hover:text-primary active:bg-accent focus-visible:outline-2 focus-visible:outline-ring pointer-coarse:min-h-11",
           selected && "underline decoration-primary underline-offset-3",
@@ -330,6 +332,7 @@ function MarkdownChoiceComment({
   anchorRef?: RefObject<HTMLButtonElement | null>;
   tail?: boolean;
 }) {
+  const gt = useGT();
   const state = use(MarkdownChoicesContext)!;
   const defaultTarget =
     options.find(
@@ -385,19 +388,25 @@ function MarkdownChoiceComment({
         ref={triggerRef}
         aria-label={
           tail
-            ? `${hasNotes ? "Edit comment" : "Comment"} on ${options[0]!.group}`
-            : `${comment ? "Edit comment" : "Comment"} on ${label}`
+            ? hasNotes
+              ? gt("Edit comment on {target}", { target: options[0]!.group })
+              : gt("Comment on {target}", { target: options[0]!.group })
+            : comment
+              ? gt("Edit comment on {target}", { target: label })
+              : gt("Comment on {target}", { target: label })
         }
         render={tail ? <MarkdownChoiceCommentTail /> : <MarkdownChoiceCommentAction />}
       >
-        {(tail ? hasNotes : comment) ? "Edit comment" : "Comment"}
+        {(tail ? hasNotes : comment)
+          ? gt("Edit comment", { $context: "button, edits the comment on a choice" })
+          : gt("Comment", { $context: "button, adds a comment to a choice" })}
       </PopoverTrigger>
       {open ? (
         <PopoverPopup
           anchor={anchorRef}
           width="md"
           padding="compact"
-          aria-label={`Comment on ${label}`}
+          aria-label={gt("Comment on {target}", { target: label })}
           initialFocus={() => {
             inputRef.current?.focus({ preventScroll: true });
             return false;
@@ -417,7 +426,7 @@ function MarkdownChoiceComment({
             {tail && options.length > 1 ? (
               <div
                 role="radiogroup"
-                aria-label="Comment source"
+                aria-label={gt("Comment source")}
                 className="flex flex-wrap gap-x-3 px-1 text-xs text-muted-foreground"
               >
                 {options.map((option) => (
