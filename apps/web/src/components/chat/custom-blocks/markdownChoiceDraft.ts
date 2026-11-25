@@ -21,7 +21,7 @@ export type MarkdownChoiceDraftUpdate = {
   }[];
 };
 
-function choiceRows(prompt: string, source: MarkdownChoiceSource) {
+export function choiceRows(prompt: string, source: MarkdownChoiceSource) {
   return collectAssistantCitations(prompt).flatMap((match) => {
     const { citation, start, end } = match;
     if (

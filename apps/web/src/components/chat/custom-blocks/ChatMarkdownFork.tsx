@@ -155,6 +155,7 @@ export function renderForkFence({
     meta,
     source: code,
     threadRef,
+    messageId: state.messageId,
     namedReferences: state.namedReferences,
     renderMarkdown: (body, namedReferences = state.namedReferences, sourceChoices = true) =>
       renderMarkdown({
