@@ -3216,6 +3216,7 @@ export default function ChatView(props: ChatViewProps) {
   };
   const onWorktreeSetupWorkLocallyStable = useStableCallback(onWorktreeSetupWorkLocally);
   const onComposerSendStable = useStableCallback(onSend);
+  const onComposerScrollToEndStable = useStableCallback(() => scrollToEnd());
   const sendPreviewAnnotation = (
     annotation: PreviewAnnotationPayload,
     image: ComposerImageAttachment | null,
@@ -3988,6 +3989,7 @@ export default function ChatView(props: ChatViewProps) {
                                 onPageScrollKeyDown={onComposerPageScrollKeyDownStable}
                                 onPageScrollKeyUp={onComposerPageScrollKeyUpStable}
                                 onPageScrollRelease={onComposerPageScrollReleaseStable}
+                                onScrollToEnd={onComposerScrollToEndStable}
                                 onCompactContext={onComposerCompactContextStable}
                                 onSend={onComposerSendStable}
                                 captureDetachedSend={captureDetachedSend}

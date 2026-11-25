@@ -12872,5 +12872,14 @@
   "971403915db539ca": "Reference",
   "b9ab529a7280b79c": "Close briefing",
   "8954ac2d96e104a6": ["Unable to load this reference: ", { "i": 1, "k": "_gt_value_1", "v": "v" }],
-  "242427b4e6453a93": "Loading reference…"
+  "242427b4e6453a93": "Loading reference…",
+  "994914ac0c7a3cf7": "Hide what is next for you",
+  "441a0f88b122b12b": "Show what is next for you",
+  "5aa1e90bf61c6b95": "Next for you",
+  "df91d7519dc2acb6": "Queued in composer: send to answer",
+  "f78105cbac0a1419": "Test",
+  "eb613df5ddc702b7": "Decide",
+  "20feb17ad302e023": "Review",
+  "c9eaa2f05c3c4f0a": "Approve",
+  "52db07099ebf096f": "Unblock"
 }

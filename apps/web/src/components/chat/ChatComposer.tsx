@@ -226,6 +226,7 @@ import {
 } from "./ComposerAttachmentStrip";
 import { CollapsedComposerStopAction, ComposerPrimaryActions } from "./ComposerPrimaryActions";
 import { ComposerFooterPrimaryActions } from "./ComposerFooterControls";
+import { ComposerNextTray } from "./ComposerNextTray";
 import { ComposerPendingUserInputPanel } from "./ComposerPendingUserInputPanel";
 import { resolveComposerMenuActiveItemId } from "./composerMenuHighlight";
 import { buildPullRequestReferenceContext } from "../pullRequest/pullRequestDetail.logic";
@@ -461,6 +462,7 @@ export interface ChatComposerProps {
   onPageScrollKeyDown: (key: "PageUp" | "PageDown") => void;
   onPageScrollKeyUp: (key: string) => void;
   onPageScrollRelease: () => void;
+  onScrollToEnd: () => void;
 
   editingQueuedAttachments: ReadonlyArray<{
     readonly attachment: ContractChatAttachment;
@@ -590,6 +592,7 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
     onPageScrollKeyDown,
     onPageScrollKeyUp,
     onPageScrollRelease,
+    onScrollToEnd,
     onCompactContext,
     onSend,
     captureDetachedSend,
@@ -3733,6 +3736,14 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
                 ) : null}
               </ComposerBanner.Root>
             </ComposerBanner.Attachment>
+          ) : activePendingApproval === null &&
+            pendingApprovals.length === 0 &&
+            incomingPendingUserInputs.length === 0 ? (
+            <ComposerNextTray
+              threadRef={routeThreadRef}
+              cwd={gitCwd ?? undefined}
+              onScrollToEnd={onScrollToEnd}
+            />
           ) : null}
         </ComposerBanner.Column>
         <ComposerStashBadge

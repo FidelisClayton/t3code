@@ -7,6 +7,8 @@ import { MarkdownFormBlock } from "./MarkdownFormBlock";
 import { MarkdownHtmlBlock } from "./MarkdownHtmlBlock";
 import { parseMarkdownForm, type MarkdownFormDefinition } from "./markdownForm";
 import { MarkdownChatHandlersContext } from "./MarkdownChatHandlers";
+import { MarkdownNextBlock } from "./MarkdownNextBlock";
+import { parseMarkdownNext } from "./markdownNext";
 
 function ContextFormBlock({ form }: { form: MarkdownFormDefinition }) {
   const { onSendAppMessage } = use(MarkdownChatHandlersContext);
@@ -40,6 +42,12 @@ export function renderMarkdownCustomBlock({
         namedReferences={namedReferences}
         renderMarkdown={renderMarkdown}
       />
+    ) : null;
+  }
+  if (language === "next" && meta === undefined) {
+    const next = parseMarkdownNext(source);
+    return next ? (
+      <MarkdownNextBlock key={source} next={next} renderMarkdown={renderMarkdown} />
     ) : null;
   }
   if (language === "form") {

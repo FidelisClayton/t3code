@@ -12873,5 +12873,14 @@
     "Den här referensen kunde inte läsas in: ",
     { "i": 1, "k": "_gt_value_1", "v": "v" }
   ],
-  "242427b4e6453a93": "Läser in referens…"
+  "242427b4e6453a93": "Läser in referens…",
+  "994914ac0c7a3cf7": "Dölj nästa för dig",
+  "441a0f88b122b12b": "Visa nästa för dig",
+  "5aa1e90bf61c6b95": "Nästa för dig",
+  "df91d7519dc2acb6": "Köat i meddelanderutan: skicka för att svara",
+  "f78105cbac0a1419": "Testa",
+  "eb613df5ddc702b7": "Besluta",
+  "20feb17ad302e023": "Granska",
+  "c9eaa2f05c3c4f0a": "Godkänn",
+  "52db07099ebf096f": "Lås upp"
 }

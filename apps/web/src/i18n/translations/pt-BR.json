@@ -12866,5 +12866,14 @@
     "Não foi possível carregar esta referência: ",
     { "i": 1, "k": "_gt_value_1", "v": "v" }
   ],
-  "242427b4e6453a93": "Carregando referência…"
+  "242427b4e6453a93": "Carregando referência…",
+  "994914ac0c7a3cf7": "Ocultar o próximo para você",
+  "441a0f88b122b12b": "Mostrar o próximo para você",
+  "5aa1e90bf61c6b95": "Próximo para você",
+  "df91d7519dc2acb6": "Na fila do compositor: envie para responder",
+  "f78105cbac0a1419": "Testar",
+  "eb613df5ddc702b7": "Decidir",
+  "20feb17ad302e023": "Revisar",
+  "c9eaa2f05c3c4f0a": "Aprovar",
+  "52db07099ebf096f": "Desbloquear"
 }
