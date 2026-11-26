@@ -1,0 +1,36 @@
+:is(.markdown-status, .markdown-resources, .markdown-steps) summary {
+  cursor: pointer;
+  list-style: none;
+  border-radius: 0.25rem;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+:is(.markdown-status, .markdown-resources, .markdown-steps) summary::-webkit-details-marker {
+  display: none;
+}
+:is(.markdown-status, .markdown-resources, .markdown-steps) summary::after {
+  content: "";
+  display: inline-block;
+  inline-size: 0.38em;
+  block-size: 0.38em;
+  margin-inline-start: 0.55em;
+  border: solid var(--muted-foreground);
+  border-width: 0 1.5px 1.5px 0;
+  rotate: 45deg;
+  translate: 0 -0.18em;
+}
+:is(.markdown-status, .markdown-resources, .markdown-steps) details[open] > summary::after {
+  rotate: 225deg;
+  translate: 0 0.08em;
+}
+:is(.markdown-status, .markdown-resources, .markdown-steps) summary:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 1px;
+}
+@media (hover: hover) and (pointer: fine) {
+  :is(.markdown-status, .markdown-resources, .markdown-steps) summary:hover {
+    text-decoration: underline dotted;
+    text-decoration-color: var(--muted-foreground);
+    text-underline-offset: 3px;
+  }
+}

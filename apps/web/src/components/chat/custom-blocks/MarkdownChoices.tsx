@@ -35,11 +35,14 @@ import {
   type MarkdownChoiceState,
 } from "./markdownChoiceState";
 import type { MarkdownChoiceDraftUpdate, MarkdownChoiceSource } from "./markdownChoiceDraft";
+import { MarkdownChatHandlersContext } from "./MarkdownChatHandlers";
 import "./MarkdownChoices.css";
 
 const MarkdownChoicesContext = createContext<{
   rootRef: RefObject<HTMLElement | null>;
   id: string;
+  storageKey: string | null;
+  source: MarkdownChoiceSource | undefined;
   groups: ReturnType<typeof analyzeMarkdownChoices>["groups"];
   selected: MarkdownChoiceSelection;
   notes: ReadonlyMap<string, string>;
@@ -63,7 +66,8 @@ export function MarkdownChoices({
   source?: MarkdownChoiceSource | undefined;
   onChoiceDraftUpdate?: ((update: MarkdownChoiceDraftUpdate) => boolean) | undefined;
 }) {
-  const id = useId();
+  const parent = use(MarkdownChoicesContext);
+  const ownId = useId();
   const buttons = useRef(new Map<string, HTMLButtonElement>());
   // oxlint-disable-next-line t3code/no-manual-memo -- Compiler groups this parse with selection and note updates.
   const { groups, options } = useMemo(
@@ -73,6 +77,8 @@ export function MarkdownChoices({
   const storageKey = source
     ? JSON.stringify([source.environmentId, source.threadId, source.messageId])
     : null;
+  // Providers of one message (prose, `next`, fences) share an id, so their radios form one group.
+  const id = parent && storageKey && parent.storageKey === storageKey ? parent.id : ownId;
   const subscribe = (listener: () => void) =>
     storageKey ? markdownChoiceStore.subscribe(storageKey, listener) : () => {};
   const getSnapshot = () => (storageKey ? markdownChoiceStore.read(storageKey) : null);
@@ -134,6 +140,8 @@ export function MarkdownChoices({
       value={{
         rootRef,
         id,
+        storageKey,
+        source,
         groups,
         selected,
         notes,
@@ -174,15 +182,19 @@ export function MarkdownChoices({
             role="radiogroup"
             aria-label={group}
             className="sr-only"
+            data-choice-radiogroup={id}
             ref={(node) => {
               if (!node) return;
+              const root = outermostChatMarkdown(node);
               const radios = Array.from(
-                node
-                  .closest(".chat-markdown")
-                  ?.querySelectorAll<HTMLButtonElement>(
-                    `button[data-choice-message="${id}"][data-choice-group="${group}"][role="radio"]`,
-                  ) ?? [],
+                root?.querySelectorAll<HTMLButtonElement>(
+                  `button[data-choice-message="${id}"][data-choice-group="${group}"][role="radio"]`,
+                ) ?? [],
               );
+              // Every provider that owns the group renders a span; only the first in the message stays exposed.
+              node.hidden =
+                root?.querySelector(`[data-choice-radiogroup="${id}"][aria-label="${group}"]`) !==
+                node;
               node.setAttribute("aria-owns", radios.map((radio) => radio.id).join(" "));
               const selectedValues = Object.hasOwn(selected, group) ? selected[group] : undefined;
               const tabStop =
@@ -197,14 +209,52 @@ export function MarkdownChoices({
   );
 }
 
+/** Nested markdown (`next` bodies) has its own `.chat-markdown`; the message's radios live in the outermost one. */
+function outermostChatMarkdown(node: HTMLElement) {
+  let root = node.closest(".chat-markdown");
+  for (let up = root?.parentElement?.closest(".chat-markdown"); up;) {
+    root = up;
+    up = root.parentElement?.closest(".chat-markdown");
+  }
+  return root;
+}
+
+/** Choices a custom block renders itself, sharing the message's selection store and draft. */
+export function MarkdownChoiceScope({
+  text,
+  rootRef,
+  children,
+}: {
+  text: string;
+  rootRef: RefObject<HTMLElement | null>;
+  children: ReactNode;
+}) {
+  const parent = use(MarkdownChoicesContext);
+  const { onChoiceDraftUpdate } = use(MarkdownChatHandlersContext);
+  return (
+    <MarkdownChoices
+      text={text}
+      enabled
+      rootRef={rootRef}
+      source={parent?.source}
+      onChoiceDraftUpdate={onChoiceDraftUpdate}
+    >
+      {children}
+    </MarkdownChoices>
+  );
+}
+
+/** `card` drops the inline look; the card stretches the button over itself and draws its state. */
 export function MarkdownInlineChoice({
   choice,
   children,
   label,
+  card = false,
 }: {
   choice: MarkdownChoice;
   children: ReactNode;
   label: string;
+  card?: boolean;
 }) {
   const gt = useGT();
   const state = use(MarkdownChoicesContext);
@@ -230,7 +280,7 @@ export function MarkdownInlineChoice({
         : SquareIcon;
   return (
     <span
-      className="group/choice relative inline"
+      className={card ? "group/choice" : "group/choice relative inline"}
       data-markdown-copy={`[${label}](${choice.mode === "single" ? "choice" : "choices"}:${key})`}
     >
       <button
@@ -245,8 +295,9 @@ export function MarkdownInlineChoice({
         tabIndex={choice.mode === "multi" ? 0 : -1}
         aria-description={comment ? gt("Has comment") : undefined}
         className={cn(
-          "inline cursor-pointer rounded-sm text-inherit hover:text-primary active:bg-accent focus-visible:outline-2 focus-visible:outline-ring pointer-coarse:min-h-11",
-          selected && "underline decoration-primary underline-offset-3",
+          "cursor-pointer rounded-sm text-inherit focus-visible:outline-2 focus-visible:outline-ring",
+          !card && "inline hover:text-primary active:bg-accent pointer-coarse:min-h-11",
+          selected && !card && "underline decoration-primary underline-offset-3",
         )}
         onClick={() => state.toggle(choice)}
         onKeyDown={(event) => {
@@ -259,7 +310,7 @@ export function MarkdownInlineChoice({
                 : 0;
           if (!step) return;
           const radios = Array.from(
-            state.rootRef.current?.querySelectorAll<HTMLButtonElement>(
+            outermostChatMarkdown(event.currentTarget)?.querySelectorAll<HTMLButtonElement>(
               `button[data-choice-message="${state.id}"][data-choice-group="${choice.group}"][role="radio"]`,
             ) ?? [],
           );
@@ -281,6 +332,9 @@ export function MarkdownInlineChoice({
         ) : null}
       </button>
       <MarkdownChoiceComment options={[{ ...choice, label }]} anchorRef={phraseRef} />
+      {card ? (
+        <MarkdownChoiceComment options={[{ ...choice, label }]} anchorRef={phraseRef} tail />
+      ) : null}
     </span>
   );
 }

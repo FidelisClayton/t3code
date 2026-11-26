@@ -9,6 +9,22 @@ import { parseMarkdownForm, type MarkdownFormDefinition } from "./markdownForm";
 import { MarkdownChatHandlersContext } from "./MarkdownChatHandlers";
 import { MarkdownNextBlock } from "./MarkdownNextBlock";
 import { parseMarkdownNext } from "./markdownNext";
+import { MarkdownCompareBlock } from "./MarkdownCompareBlock";
+import { parseMarkdownCompare } from "./markdownCompare";
+import { MarkdownStepsBlock } from "./MarkdownStepsBlock";
+import { parseMarkdownSteps } from "./markdownSteps";
+import { MarkdownMetricsBlock } from "./MarkdownMetricsBlock";
+import { parseMarkdownMetrics } from "./markdownMetrics";
+import { MarkdownScopeBlock } from "./MarkdownScopeBlock";
+import { parseMarkdownScope } from "./markdownScope";
+import { MarkdownRisksBlock } from "./MarkdownRisksBlock";
+import { parseMarkdownRisks } from "./markdownRisks";
+import { MarkdownStatusBlock } from "./MarkdownStatusBlock";
+import { parseMarkdownStatus } from "./markdownStatus";
+import { MarkdownSwatchesBlock } from "./MarkdownSwatchesBlock";
+import { parseMarkdownSwatches } from "./markdownSwatches";
+import { MarkdownResourcesBlock } from "./MarkdownResourcesBlock";
+import { parseMarkdownResources } from "./markdownResources";
 
 function ContextFormBlock({ form }: { form: MarkdownFormDefinition }) {
   const { onSendAppMessage } = use(MarkdownChatHandlersContext);
@@ -50,6 +66,10 @@ export function renderMarkdownCustomBlock({
       <MarkdownNextBlock key={source} next={next} renderMarkdown={renderMarkdown} />
     ) : null;
   }
+  if (meta === undefined) {
+    const block = renderPresentationBlock(language, source, threadRef, renderMarkdown);
+    if (block !== undefined) return block;
+  }
   if (language === "form") {
     const form = parseMarkdownForm(source);
     return form ? <ContextFormBlock key={source} form={form} /> : null;
@@ -57,4 +77,63 @@ export function renderMarkdownCustomBlock({
   return language === "html" && meta === "render" ? (
     <MarkdownHtmlBlock html={source} {...(threadRef ? { threadRef } : {})} />
   ) : null;
+}
+
+function renderPresentationBlock(
+  language: string,
+  source: string,
+  threadRef: ScopedThreadRef | undefined,
+  renderMarkdown: (body: string, namedReferences?: boolean, sourceChoices?: boolean) => ReactNode,
+): ReactNode | undefined {
+  switch (language) {
+    case "compare": {
+      const compare = parseMarkdownCompare(source);
+      return compare ? <MarkdownCompareBlock key={source} compare={compare} /> : null;
+    }
+    case "steps": {
+      const steps = parseMarkdownSteps(source);
+      return steps ? (
+        <MarkdownStepsBlock key={source} steps={steps} renderMarkdown={renderMarkdown} />
+      ) : null;
+    }
+    case "metrics": {
+      const metrics = parseMarkdownMetrics(source);
+      return metrics ? <MarkdownMetricsBlock key={source} metrics={metrics} /> : null;
+    }
+    case "scope": {
+      const scope = parseMarkdownScope(source);
+      return scope ? <MarkdownScopeBlock key={source} scope={scope} /> : null;
+    }
+    case "risks": {
+      const risks = parseMarkdownRisks(source);
+      return risks ? <MarkdownRisksBlock key={source} risks={risks} /> : null;
+    }
+    case "status": {
+      const status = parseMarkdownStatus(source);
+      return status ? (
+        <MarkdownStatusBlock
+          key={source}
+          status={status}
+          threadRef={threadRef}
+          renderMarkdown={renderMarkdown}
+        />
+      ) : null;
+    }
+    case "swatches": {
+      const swatches = parseMarkdownSwatches(source);
+      return swatches ? <MarkdownSwatchesBlock key={source} swatches={swatches} /> : null;
+    }
+    case "resources": {
+      const resources = parseMarkdownResources(source);
+      return resources ? (
+        <MarkdownResourcesBlock
+          key={source}
+          resources={resources}
+          renderMarkdown={renderMarkdown}
+        />
+      ) : null;
+    }
+    default:
+      return undefined;
+  }
 }
