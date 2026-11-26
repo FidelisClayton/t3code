@@ -1,0 +1,77 @@
+.markdown-status-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.25rem 0.75rem;
+}
+.markdown-status .markdown-status-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.markdown-status-dot {
+  flex: none;
+  inline-size: 0.5rem;
+  block-size: 0.5rem;
+  border-radius: 50%;
+  background: var(--muted-foreground);
+}
+.markdown-status-dot[data-state="done"] {
+  background: var(--success);
+}
+.markdown-status-dot[data-state="in_progress"] {
+  background: var(--info);
+}
+.markdown-status-dot[data-state="planned"] {
+  background: transparent;
+  box-shadow: inset 0 0 0 1.5px var(--muted-foreground);
+}
+.markdown-status-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+.markdown-status .markdown-status-default {
+  margin: 0;
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+.markdown-status-notes {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  padding-block-start: 0.5rem;
+  border-block-start: 1px solid var(--border);
+  font-size: 13px;
+}
+.markdown-status-note {
+  display: flex;
+  align-items: start;
+  gap: 0.5rem;
+}
+.markdown-status-note > svg {
+  flex: none;
+  inline-size: 1.05em;
+  block-size: 1lh;
+  color: var(--muted-foreground);
+}
+.markdown-status-note[data-kind="tradeoff"] > svg {
+  color: var(--warning);
+}
+.markdown-status-note[data-kind="correction"] > svg {
+  color: var(--info);
+}
+.markdown-status-note > :not(svg) {
+  flex: 1 1 0;
+  min-inline-size: 0;
+}
+.markdown-status-kind {
+  margin-inline-end: 0.5em;
+  color: var(--foreground);
+  font-weight: 500;
+}
+.markdown-status-detail {
+  padding-block-start: 0.25rem;
+  color: color-mix(in oklch, var(--foreground) 80%, transparent);
+}

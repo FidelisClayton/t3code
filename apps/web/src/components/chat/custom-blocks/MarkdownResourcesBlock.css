@@ -1,0 +1,92 @@
+.markdown-resources-header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+.markdown-resources-muted {
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+.markdown-resources-bar {
+  display: flex;
+  block-size: 6px;
+  margin-block-start: 0.25rem;
+  overflow: clip;
+  border-radius: 3px;
+  background: color-mix(in oklch, var(--foreground) 8%, transparent);
+}
+.markdown-resources-bar > i {
+  min-inline-size: 2px;
+  border-inline-end: 1px solid var(--card);
+  background: var(--primary);
+}
+.markdown-resources-bar > i:nth-child(even) {
+  background: color-mix(in oklch, var(--primary) 50%, transparent);
+}
+.markdown-resources-note {
+  display: flex;
+  align-items: start;
+  gap: 0.5rem;
+  padding-block: 0.375rem;
+  padding-inline: 0.5rem;
+  border-radius: 0.375rem;
+  background: var(--warning-surface);
+  color: var(--foreground);
+  font-size: 13px;
+}
+.markdown-resources-note > svg {
+  flex: none;
+  inline-size: 1em;
+  block-size: 1lh;
+  color: var(--warning);
+}
+.markdown-resources-group > summary,
+.markdown-resources-heading {
+  padding-block-end: 0.25rem;
+  color: var(--foreground);
+  font-size: 13px;
+  font-weight: 600;
+}
+.markdown-resources-count {
+  color: var(--muted-foreground);
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+}
+.markdown-resources-row {
+  display: grid;
+  grid-template-columns: fit-content(35%) minmax(0, 1fr);
+  column-gap: 0.625rem;
+  row-gap: 0.125rem;
+  padding-block: 0.375rem;
+  border-block-start: 1px solid var(--border);
+}
+.markdown-resources-row:last-child {
+  padding-block-end: 0;
+}
+.markdown-resources-row[data-stale="true"] {
+  color: var(--muted-foreground);
+}
+.markdown-resources-row > :nth-child(n + 2):not(.markdown-resources-main) {
+  grid-column: 2;
+}
+.markdown-resources-id {
+  color: var(--muted-foreground);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+.markdown-resources-main {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.125rem 0.5rem;
+  min-inline-size: 0;
+}
+.markdown-resources .markdown-resources-main p {
+  margin: 0;
+}
+.markdown-resources-add {
+  color: var(--success-foreground);
+}
+.markdown-resources-del {
+  color: var(--destructive-foreground);
+}

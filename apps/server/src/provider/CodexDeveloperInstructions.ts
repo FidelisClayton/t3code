@@ -2,6 +2,7 @@ import type { AgentFeedbackMode } from "@t3tools/contracts";
 import type { V2TurnStartParams__AdditionalContextEntry } from "effect-codex-app-server/schema";
 import {
   buildRuntimeInstructions,
+  ADAPTIVE_PRESENTATION_INSTRUCTIONS,
   CHAT_MARKDOWN_INSTRUCTIONS,
 } from "@t3tools/provider-core/server/runtimeInstructions";
 
@@ -61,6 +62,7 @@ export function buildCodexAdditionalContext(
       value: buildRuntimeInstructions({ harness: "Codex", ...runtime, chatMarkdown: false }),
     },
     t3_code_markdown: { kind: "application", value: CHAT_MARKDOWN_INSTRUCTIONS },
+    t3_code_presentation: { kind: "application", value: ADAPTIVE_PRESENTATION_INSTRUCTIONS },
     ...(tools ? { t3_code_tools: { kind: "application", value: tools } } : {}),
   };
 }

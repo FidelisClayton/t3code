@@ -903,6 +903,27 @@ it("keeps stopped, invalid, ordinary and opted-out fences readable", async () =>
     expect(screen.container.textContent).not.toContain("Preparing component…");
   }
 });
+it.each(["compare", "steps", "metrics", "scope", "risks", "status", "swatches", "resources"])(
+  "keeps %s fences readable when invalid, with meta, or still streaming",
+  async (language) => {
+    setup();
+    await using screen = await renderText(`\`\`\`${language}\n{secret`, {
+      customBlocks: true,
+      isStreaming: true,
+    });
+    await expect.element(screen.getByText("Preparing component…", { exact: true })).toBeVisible();
+    expect(screen.container.textContent).not.toContain("{secret");
+    for (const text of [
+      `\`\`\`${language}\n{secret\n\`\`\``,
+      `\`\`\`${language} extra\n{}\n\`\`\``,
+    ]) {
+      await screen.rerender(<ChatMarkdown cwd="/tmp/project" text={text} customBlocks />);
+      expect(screen.container.querySelector("pre")).not.toBeNull();
+      expect(screen.container.textContent).not.toContain("Preparing component…");
+    }
+  },
+);
+
 it("keeps reference schemes inert outside assistant custom blocks", async () => {
   setup();
   await using screen = await renderText(referenceMention + "\n\n" + referenceDeclaration());

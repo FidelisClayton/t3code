@@ -1,0 +1,138 @@
+.markdown-steps-list {
+  counter-reset: step;
+}
+/* The step marker is the first grid column; everything else stacks in the second. */
+.markdown-steps-item {
+  display: grid;
+  grid-template-columns: 1.25rem minmax(0, 1fr);
+  column-gap: 0.625rem;
+  row-gap: 0.375rem;
+  padding-block: 0.5rem;
+  counter-increment: step;
+}
+.markdown-steps-item:first-child {
+  padding-block-start: 0;
+}
+.markdown-steps-item:last-child {
+  padding-block-end: 0;
+}
+.markdown-steps-item + .markdown-steps-item {
+  border-block-start: 1px solid var(--border);
+}
+.markdown-steps-item > * {
+  grid-column: 2;
+}
+.markdown-steps-item::before {
+  grid-column: 1;
+  grid-row: 1;
+  display: grid;
+  place-items: center;
+  align-self: start;
+  block-size: 1.25rem;
+  border-radius: 0.3rem;
+  background: color-mix(in oklch, var(--foreground) 8%, transparent);
+  color: var(--foreground);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  line-height: 1;
+  content: counter(step);
+}
+.markdown-steps-list[data-ordered="false"] .markdown-steps-item::before {
+  background: none;
+  color: var(--muted-foreground);
+  font-size: 14px;
+  content: "•";
+}
+.markdown-steps-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.125rem 0.75rem;
+}
+.markdown-steps-label {
+  flex: 1 1 12rem;
+  min-inline-size: 0;
+  color: var(--foreground);
+  font-weight: 500;
+}
+.markdown-steps-meta {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.125rem 0.625rem;
+  color: var(--muted-foreground);
+  font-size: 12px;
+  white-space: nowrap;
+}
+.markdown-steps-owner[data-owner="user"] {
+  color: color-mix(in oklch, var(--primary) 70%, var(--foreground));
+  font-weight: 600;
+}
+.markdown-steps-state {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.25rem;
+}
+.markdown-steps-state > svg {
+  flex: none;
+  align-self: center;
+  inline-size: 1.1em;
+  block-size: 1.1em;
+}
+.markdown-steps-state[data-state="done"] {
+  color: var(--success-foreground);
+}
+.markdown-steps-state[data-state="done"] > svg {
+  color: var(--success);
+}
+.markdown-steps-state[data-state="blocked"] {
+  color: var(--destructive-foreground);
+}
+.markdown-steps-state[data-state="blocked"] > svg {
+  color: var(--destructive);
+}
+.markdown-steps-state:is([data-state="pending"], [data-state="unverified"]) {
+  color: var(--warning-foreground);
+}
+.markdown-steps-state:is([data-state="pending"], [data-state="unverified"]) > svg {
+  color: var(--warning);
+}
+.markdown-steps-parallel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+.markdown-steps-caption {
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+.markdown-steps-chips {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 8.5rem), 1fr));
+  gap: 0.25rem;
+  padding: 0.25rem;
+  border: 1px solid var(--border);
+  border-radius: 0.625rem;
+}
+.markdown-steps-chip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.125rem 0.5rem;
+  padding-block: 0.25rem;
+  padding-inline: 0.5rem;
+  border-radius: 0.375rem;
+  background: color-mix(in oklch, var(--foreground) 6%, transparent);
+  color: var(--foreground);
+  font-size: 13px;
+}
+.markdown-steps-detail summary {
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+.markdown-steps-detail > .chat-markdown {
+  padding-block-start: 0.25rem;
+  font-size: 13px;
+}

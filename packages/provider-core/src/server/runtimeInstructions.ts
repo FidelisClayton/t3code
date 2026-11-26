@@ -1,9 +1,12 @@
 import type { AgentFeedbackMode } from "@t3tools/contracts";
 
-import { CHAT_MARKDOWN_INSTRUCTIONS } from "./markdownInstructions.ts";
+import {
+  ADAPTIVE_PRESENTATION_INSTRUCTIONS,
+  CHAT_MARKDOWN_INSTRUCTIONS,
+} from "./markdownInstructions.ts";
 import type { ProviderAdapterV2RuntimePolicy } from "./ProviderAdapter.ts";
 
-export { CHAT_MARKDOWN_INSTRUCTIONS };
+export { ADAPTIVE_PRESENTATION_INSTRUCTIONS, CHAT_MARKDOWN_INSTRUCTIONS };
 
 /** None while agent feedback is off, so users who never opt in pay no context for it. */
 export const AGENT_FEEDBACK_INSTRUCTIONS = {
@@ -52,7 +55,7 @@ export function buildRuntimeInstructions(runtime: {
   const instructions = [linked + feedback, ...(workspace === "" ? [] : [workspace])].join("\n\n");
   return runtime.chatMarkdown === false
     ? instructions
-    : `${instructions}\n\n${CHAT_MARKDOWN_INSTRUCTIONS}`;
+    : `${instructions}\n\n${CHAT_MARKDOWN_INSTRUCTIONS}\n\n${ADAPTIVE_PRESENTATION_INSTRUCTIONS}`;
 }
 
 function toSingleLine(value: string): string {
