@@ -2,7 +2,7 @@ import { use, type ReactNode } from "react";
 import { MarkdownRecapBlock } from "./MarkdownRecapBlock";
 import { parseMarkdownRecap } from "./markdownRecap";
 import { parseMarkdownReferenceDefinition } from "@t3tools/shared/markdownReferences";
-import type { ScopedThreadRef } from "@t3tools/contracts";
+import type { MessageId, ScopedThreadRef } from "@t3tools/contracts";
 import { MarkdownFormBlock } from "./MarkdownFormBlock";
 import { MarkdownHtmlBlock } from "./MarkdownHtmlBlock";
 import { parseMarkdownForm, type MarkdownFormDefinition } from "./markdownForm";
@@ -36,6 +36,7 @@ export function renderMarkdownCustomBlock({
   meta,
   source,
   threadRef,
+  messageId,
   namedReferences,
   renderMarkdown,
 }: {
@@ -45,6 +46,7 @@ export function renderMarkdownCustomBlock({
   meta: string | undefined;
   source: string;
   threadRef?: ScopedThreadRef | undefined;
+  messageId?: MessageId | undefined;
 }) {
   if (language === "reference" && meta === undefined && parseMarkdownReferenceDefinition(source))
     return <></>;
@@ -63,7 +65,12 @@ export function renderMarkdownCustomBlock({
   if (language === "next" && meta === undefined) {
     const next = parseMarkdownNext(source);
     return next ? (
-      <MarkdownNextBlock key={source} next={next} renderMarkdown={renderMarkdown} />
+      <MarkdownNextBlock
+        key={source}
+        next={next}
+        messageId={messageId}
+        renderMarkdown={renderMarkdown}
+      />
     ) : null;
   }
   if (meta === undefined) {

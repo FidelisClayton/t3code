@@ -62,6 +62,7 @@ export function ThreadTimeline({
     <MarkdownTimelineScope
       key={activeThreadKey}
       entries={displayedEntries}
+      threadRef={threadDetailRef}
       composerRef={composerRef}
       onSendAppMessage={timelineProps.onSendAppMessage}
     >

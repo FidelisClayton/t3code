@@ -4,6 +4,7 @@ import { userEvent } from "vite-plus/test/browser";
 import { render } from "../../../../test/render";
 import ChatMarkdown from "../../ChatMarkdown";
 import type { MarkdownChoiceDraftUpdate } from "./markdownChoiceDraft";
+import { MarkdownAnswersContext } from "./MarkdownAnswers";
 import { MarkdownChatHandlersContext } from "./MarkdownChatHandlers";
 import "../../../index.css";
 
@@ -22,25 +23,30 @@ const item = (ask: string, extra: object = {}) => ({
 const renderNext = (
   items: object[],
   onChoiceDraftUpdate: (update: MarkdownChoiceDraftUpdate) => boolean = () => true,
+  picked?: string[],
 ) =>
   render(
-    <div data-assistant-citation-viewport="true">
-      <div
-        data-assistant-citation-source={messageId}
-        data-assistant-citation-environment={threadRef.environmentId}
-        data-assistant-citation-thread={threadRef.threadId}
-      >
-        <MarkdownChatHandlersContext value={{ onChoiceDraftUpdate }}>
-          <ChatMarkdown
-            cwd="/workspace"
-            text={"```next\n" + JSON.stringify({ items }) + "\n```"}
-            customBlocks
-            threadRef={threadRef}
-            messageId={messageId}
-          />
-        </MarkdownChatHandlersContext>
+    <MarkdownAnswersContext
+      value={new Map(picked ? [[messageId, { picked: new Set(picked) }]] : [])}
+    >
+      <div data-assistant-citation-viewport="true">
+        <div
+          data-assistant-citation-source={messageId}
+          data-assistant-citation-environment={threadRef.environmentId}
+          data-assistant-citation-thread={threadRef.threadId}
+        >
+          <MarkdownChatHandlersContext value={{ onChoiceDraftUpdate }}>
+            <ChatMarkdown
+              cwd="/workspace"
+              text={"```next\n" + JSON.stringify({ items }) + "\n```"}
+              customBlocks
+              threadRef={threadRef}
+              messageId={messageId}
+            />
+          </MarkdownChatHandlersContext>
+        </div>
       </div>
-    </div>,
+    </MarkdownAnswersContext>,
   );
 
 it("keeps one item open at a time and queues the clicked action as a choice", async () => {
@@ -75,4 +81,27 @@ it("renders an action label containing a newline as one action button", async ()
     item("multi", { actions: [{ label: "Do\nthe thing", choice: "multi/do" }] }),
   ]);
   await expect.element(screen.getByRole("radio", { name: "Do the thing" })).toBeVisible();
+});
+
+it("shows an answered card collapsed, with the picked action checked and no filled primary", async () => {
+  await using screen = await renderNext([item("one"), item("two")], () => true, ["one/skip"]);
+  await expect.element(screen.getByText(/^Answered/)).toBeVisible();
+  expect(screen.container.textContent).not.toContain("Next for you");
+  expect(screen.container.querySelector("details[open]")).toBeNull();
+  await userEvent.click(screen.getByText("one", { exact: true }));
+  const picked = screen.getByRole("radio", { name: "Skip one" });
+  await expect.element(picked).toHaveAttribute("data-picked", "true");
+  await expect
+    .element(screen.getByRole("radio", { name: "Do one" }))
+    .not.toHaveAttribute("data-picked");
+  const primary = screen.getByRole("radio", { name: "Do one" }).element();
+  expect(getComputedStyle(primary).backgroundColor).toBe(
+    getComputedStyle(screen.getByRole("radio", { name: "Skip one" }).element()).backgroundColor,
+  );
+});
+
+it("keeps a single answered item visible", async () => {
+  await using screen = await renderNext([item("solo")], () => true, []);
+  await expect.element(screen.getByText("Answered")).toBeVisible();
+  await expect.element(screen.getByText("Details of solo")).toBeVisible();
 });

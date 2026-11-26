@@ -1,6 +1,6 @@
 import { useGT } from "gt-react";
 import { useStableCallback } from "~/hooks/useStableCallback";
-import { CircleIcon, CircleDotIcon, SquareIcon, SquareCheckIcon } from "lucide-react";
+import { CheckIcon, CircleIcon, CircleDotIcon, SquareIcon, SquareCheckIcon } from "lucide-react";
 import {
   createContext,
   use,
@@ -36,6 +36,7 @@ import {
 } from "./markdownChoiceState";
 import type { MarkdownChoiceDraftUpdate, MarkdownChoiceSource } from "./markdownChoiceDraft";
 import { MarkdownChatHandlersContext } from "./MarkdownChatHandlers";
+import { MarkdownPickedContext } from "./MarkdownAnswers";
 import "./MarkdownChoices.css";
 
 const MarkdownChoicesContext = createContext<{
@@ -258,6 +259,7 @@ export function MarkdownInlineChoice({
 }) {
   const gt = useGT();
   const state = use(MarkdownChoicesContext);
+  const pickedActions = use(MarkdownPickedContext);
   const choiceId = useId();
   const phraseRef = useRef<HTMLButtonElement>(null);
   const key = `${choice.group}/${choice.value}`;
@@ -267,11 +269,13 @@ export function MarkdownInlineChoice({
   });
   if (!state || state.groups.get(choice.group) !== choice.mode) return <span>{children}</span>;
   const comment = state.notes.get(key);
+  const picked = pickedActions.has(key);
   const selected =
     Object.hasOwn(state.selected, choice.group) &&
     state.selected[choice.group]!.includes(choice.value);
-  const Icon =
-    choice.mode === "single"
+  const ChoiceIcon = picked
+    ? CheckIcon
+    : choice.mode === "single"
       ? selected
         ? CircleDotIcon
         : CircleIcon
@@ -289,6 +293,7 @@ export function MarkdownInlineChoice({
         id={choiceId}
         role={choice.mode === "single" ? "radio" : "checkbox"}
         aria-checked={selected}
+        data-picked={picked || undefined}
         data-choice-message={state.id}
         data-choice-group={choice.group}
         data-choice-value={choice.value}
@@ -322,7 +327,7 @@ export function MarkdownInlineChoice({
           if (next.getAttribute("aria-checked") !== "true") next.click();
         }}
       >
-        <Icon aria-hidden="true" className="me-1 inline size-3.5 align-[-0.15em]" />
+        <ChoiceIcon aria-hidden="true" className="me-1 inline size-3.5 align-[-0.15em]" />
         {children}
         {comment ? (
           <span
