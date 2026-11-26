@@ -1,6 +1,6 @@
 import type { MessageId } from "@t3tools/contracts";
 import { createContext, use } from "react";
-import type { MarkdownAnswer } from "./markdownAnswers";
+import type { MarkdownAnswer } from "./MarkdownAnswers.logic";
 
 const NO_ANSWERS: ReadonlyMap<MessageId, MarkdownAnswer> = new Map();
 export const MarkdownAnswersContext = createContext(NO_ANSWERS);

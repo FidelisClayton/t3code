@@ -1,7 +1,7 @@
 import type { ScopedThreadRef } from "@t3tools/contracts";
 import type { ComponentProps } from "react";
 import { MarkdownAnswersContext } from "./MarkdownAnswers";
-import { deriveMarkdownAnswers } from "./markdownAnswers";
+import { deriveMarkdownAnswers } from "./MarkdownAnswers.logic";
 import { MarkdownChatHandlersProvider, type MarkdownChatHandlers } from "./MarkdownChatHandlers";
 import { MarkdownReferenceTimelineScope } from "./MarkdownReferenceScope";
 

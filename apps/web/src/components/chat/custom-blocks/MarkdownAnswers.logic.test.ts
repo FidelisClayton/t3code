@@ -2,7 +2,7 @@ import { EnvironmentId, MessageId, ThreadId, type AssistantCitation } from "@t3t
 import { serializeAssistantCitation } from "@t3tools/shared/assistantCitations";
 import { expect, it } from "vite-plus/test";
 import type { TimelineEntry } from "../../../session-logic";
-import { deriveMarkdownAnswers } from "./markdownAnswers";
+import { deriveMarkdownAnswers } from "./MarkdownAnswers.logic";
 
 const thread = { environmentId: EnvironmentId.make("env"), threadId: ThreadId.make("thread") };
 const entry = (role: "user" | "assistant", id: string, text = "") =>
