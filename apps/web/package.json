@@ -1,6 +1,6 @@
 {
   "name": "@t3tools/web",
-  "version": "0.1.12-nightly.20261125.5230+fidelis.1",
+  "version": "0.1.13-nightly.20261125.5258+fidelis.1",
   "private": true,
   "type": "module",
   "scripts": {
