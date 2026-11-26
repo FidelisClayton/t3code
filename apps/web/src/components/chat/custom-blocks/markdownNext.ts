@@ -17,6 +17,7 @@ const MarkdownNext = Schema.Struct({
               Schema.makeFilter((value) => parseMarkdownChoiceHref(`choice:${value}`) !== null),
             ),
             primary: Schema.optionalKey(Schema.Boolean),
+            danger: Schema.optionalKey(Schema.Boolean),
           }),
         )
           .check(Schema.isMaxLength(4))

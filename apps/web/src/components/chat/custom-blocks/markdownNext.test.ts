@@ -20,6 +20,9 @@ describe("Markdown next", () => {
     expect(parse({ items: [{ ...item, ask: " " }] })).toBeNull();
     expect(parse({ items: [] })).toBeNull();
     expect(
+      parse({ items: [{ ...item, actions: [{ label: "Push", choice: "a/b", danger: true }] }] }),
+    ).not.toBeNull();
+    expect(
       parse({
         items: [
           {

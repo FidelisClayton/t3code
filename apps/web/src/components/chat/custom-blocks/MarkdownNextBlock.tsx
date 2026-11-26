@@ -14,6 +14,8 @@ const actionStyles =
   "[&_p]:m-0 [&_p]:flex [&_p]:flex-wrap [&_p]:items-center [&_p]:gap-2 [&_button[role]]:inline-flex [&_button[role]]:min-h-8 [&_button[role]]:items-center [&_button[role]]:rounded-lg [&_button[role]]:border [&_button[role]]:border-input [&_button[role]]:bg-popover [&_button[role]]:px-3 [&_button[role]]:text-sm [&_button[role]]:font-medium [&_button[role]]:no-underline [&_button[role]]:shadow-xs/5 [&_button[role]_svg]:hidden [&_button[data-picked]_svg]:inline! [&_button[data-picked]]:ring-2 [&_button[data-picked]]:ring-inset [&_button[data-picked]]:ring-ring [&_button[role]]:hover:bg-accent/50 [&_button[role][aria-checked=true]]:ring-2 [&_button[role][aria-checked=true]]:ring-inset [&_button[role][aria-checked=true]]:ring-ring [&_strong]:font-normal [&_strong_button[role]]:border-primary [&_strong_button[role]]:bg-primary [&_strong_button[role]]:text-primary-foreground! [&_strong_button[role]]:hover:bg-primary/90";
 const answeredActionStyles =
   "[&_strong_button[role]]:border-input [&_strong_button[role]]:bg-popover [&_strong_button[role]]:text-foreground! [&_strong_button[role]]:hover:bg-accent/50";
+const isDangerous = (item: Item) =>
+  item.danger === true || item.actions?.some((action) => action.danger) === true;
 const dangerActionStyles =
   "[&_strong_button[role]]:border-destructive [&_strong_button[role]]:bg-destructive [&_strong_button[role]]:hover:bg-destructive/90 [&_strong_button[role]]:text-white!";
 
@@ -74,7 +76,7 @@ export function MarkdownNextBlock({
           <div
             className={cn(
               actionStyles,
-              answered ? answeredActionStyles : item.danger && dangerActionStyles,
+              answered ? answeredActionStyles : isDangerous(item) && dangerActionStyles,
             )}
           >
             {renderMarkdown(
@@ -116,7 +118,7 @@ export function MarkdownNextBlock({
         ) : null}
       </div>
       {next.items.map((item, index) => {
-        const danger = item.danger && "border-s-2 border-s-destructive bg-destructive/4";
+        const danger = isDangerous(item) && "border-s-2 border-s-destructive bg-destructive/4";
         return multiple ? (
           <details
             // oxlint-disable-next-line react/no-array-index-key -- Each immutable card remounts when its source changes.
