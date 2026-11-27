@@ -931,6 +931,30 @@ it.each([
   }
 });
 
+it("shows a fallback card with a summary and the raw fence for an invalid component", async () => {
+  setup();
+  await using screen = await renderText(
+    '```risks\n{"title":"Ship risks","items":[{"label":"Bad field","severity":"nope"}]}\n```',
+    { customBlocks: true },
+  );
+  const card = screen.getByTestId("markdown-invalid-block");
+  await expect.element(card.getByText("Couldn't show this risks block")).toBeVisible();
+  await expect.element(card.getByText("Ship risks")).toBeVisible();
+  await expect.element(card.getByText("Bad field")).toBeVisible();
+  const details = screen.container.querySelector("details")!;
+  expect(details.open).toBe(false);
+  await userEvent.click(card.getByText("Show raw"));
+  expect(details.open).toBe(true);
+  expect(details.querySelector("pre")?.textContent).toContain('"severity":"nope"');
+  await screen.rerender(
+    <ChatMarkdown cwd="/tmp/project" text={"```risks\n{broken\n```"} customBlocks />,
+  );
+  expect(
+    screen.container.querySelectorAll("[data-testid=markdown-invalid-block] .line-clamp-2"),
+  ).toHaveLength(0);
+  await expect.element(screen.getByText("Couldn't show this risks block")).toBeVisible();
+});
+
 it("keeps reference schemes inert outside assistant custom blocks", async () => {
   setup();
   await using screen = await renderText(referenceMention + "\n\n" + referenceDeclaration());

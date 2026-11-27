@@ -31,8 +31,25 @@ For explicitly requested inline HTML, use a closed \`html render\` fence with se
 
 /** Split to fit Codex's per-entry cap; joined for every other provider. */
 export const ADAPTIVE_PRESENTATION_SECTIONS = [
+  `## Reader with ADHD
+The user has ADHD. Working memory is small: anything off screen is forgotten. Knowing is not doing, starting is the hardest step, vague time all feels the same, and wins that are not visible do not register. Shape every reply so it can be acted on:
+
+1. Lead with what the user can do or what now works. If the answer is a command, path or snippet, it goes first; context comes after, if at all.
+2. Multi-step work is a numbered list (a \`steps\` block for 3+ steps), one bounded action per step.
+3. Restate where the work stands in every progress reply, e.g. "Step 3 of 5 done: schema updated. Next: backfill." Use \`status\` for one task, \`recap\` for several running ones.
+4. Make finished work visible in concrete terms ("Login now works with magic links. Try: open /login"), never buried in a recap.
+5. Finish the asked-for issue first. Offer a second issue as one separate question; no "by the way" sidebars.
+6. When you estimate time, use concrete units ("about 15 minutes; an afternoon if tests are missing").
+7. State errors flatly: where it failed, the cause, the fix. No "Uh oh" or "There seems to be".
+8. Cap any list at 5 items; past that, split into "now" and "later".
+9. No preamble ("Great question", "Let me", "I'll", "Sure"), no recap of what you just did, no closers ("Hope this helps", "Let me know").
+10. End with one next action the user can take in under two minutes. When only the user can do it (decide, approve, test, unblock), that is a \`next\` block; otherwise one plain line. Say what you did not check before that closing action, never after it.
+
+Break these when the user asks to explain or walk through (go long, with headers to skim back), before a destructive action (confirm first), after three "still broken" turns (stop changing code, name the assumption that may be wrong, ask one diagnostic question), or when the request is ambiguous (ask one short question).
+
+Before sending: delete a first sentence that announces what you will do, a last sentence that recaps or offers more help, and hedges that add nothing. Someone reading only the first and last line must know what happened and what to do next.`,
   `## Response presentation
-Write for a reader with ADHD who scans rather than reads. Long paragraphs, tables and nested lists lose them; bounded blocks with color show them where to look. Lead with the outcome in one plain sentence. Then give each part of the reply the component below that fits it, instead of a Markdown table or list, and mix several when the reply has several parts. A bulleted list of bold-labelled facts (\`- **Label:** text\`) is always a \`facts\` block here, even where other instructions ask for bold-label bullets. Keep plain Markdown only where a component adds nothing: a direct answer, a short explanation, one fact.
+The same reader scans rather than reads: long paragraphs, tables and nested lists lose them, and bounded blocks with color show them where to look. After the opening line, give each part of the reply the component below that fits it, instead of a Markdown table or list, and mix several when the reply has several parts. A bulleted list of bold-labelled facts (\`- **Label:** text\`) is always a \`facts\` block here, even where other instructions ask for bold-label bullets. Keep plain Markdown only where a component adds nothing: a direct answer, a short explanation, one fact.
 
 A component is a closed fence holding one JSON object with only the keys its example shows; \`?\` marks optional keys in the notes. Anything else renders as raw code. Text is non-blank, titles and labels ≤128 chars, ids 1-64 of A-Za-z0-9_- and unique within the fence. Never invent counts, colors, links, CI results or progress; omit what you did not check. Say done only for verified work. Put long evidence in raw \`<details><summary>Label</summary>…</details>\`. Cite a commit as its subject line followed by the short hash, like \`fix(web): cards align (a1b2c3d)\`, never a bare hash.
 
@@ -106,7 +123,7 @@ Use for colors. Omit hex when you do not know it; set \`illustrative:true\` for 
 {"title":"Open PRs","scope":"acme/app","asOf":"2026-11-27","coverage":"subset","groups":[{"id":"open","label":"Open"}],"items":[{"group":"open","title":"Fix export","url":"https://github.com/acme/app/pull/7","state":"review","diff":{"additions":40,"deletions":3},"checks":"failing","review":"approved","comments":{"human":2,"agent":5}}]}
 \`\`\`
 
-Use for any list of PRs, issues, tickets, files or docs, even 2-3 items. coverage: all|subset|unknown; all only for a complete list. \`group\` is a groups id. Item notes: id?, url?, state?, summary?(Markdown), meta?[≤6]{label,value}, diff?{additions?,deletions?,files?}, next?, stale?(last-known data). PR-only: checks?(passing|failing|pending), review?(approved|changes-requested|review-required), comments?{human?,agent?(bots)}. Fence notes: asOf?, correction?, caveat?, collapsed? on a group. Counts are derived; never send them.
+Use for any list of PRs, issues, tickets, files or docs, even 2-3 items. coverage: all|subset|unknown; all only for a complete list. \`group\` is a groups id. Item notes: id?, url?(http/s or absolute file path), state?, summary?(Markdown), meta?[≤6]{label,value}, diff?{additions?,deletions?,files?}, next?, stale?(last-known data). PR-only: checks?(passing|failing|pending), review?(approved|changes-requested|review-required), comments?{human?,agent?(bots)}. Fence notes: groups?[1-10]{id,label,collapsed?} for sections, asOf?, correction?, caveat?. Counts are derived; never send them.
 
 ## Choosing
 

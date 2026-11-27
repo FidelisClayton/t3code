@@ -13174,5 +13174,7 @@
   "31c3ed77e1676202": "{count} info",
   "37ddd27476352d2f": "{count} OK",
   "57ff60eef95c3b10": "Avfärda det här objektet",
-  "63790659557f315e": "Visa detaljer"
+  "63790659557f315e": "Visa detaljer",
+  "948e9dede9fff51b": "Det gick inte att visa det här {block}-blocket",
+  "b1cc8f4ddbfda715": "Visa rådata"
 }

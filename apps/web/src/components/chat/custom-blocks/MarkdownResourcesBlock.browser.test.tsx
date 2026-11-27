@@ -145,3 +145,28 @@ it("keeps a crafted url inside one link destination", async () => {
     "[Demo-video narration and demo-director skill](https://example.com/a%20b%29[x]%28https://evil.example/%29)",
   );
 });
+
+it("renders a flat list with no group header", async () => {
+  const flat = parseMarkdownResources(
+    '{"title":"Adaptive blocks PRs","scope":"FidelisClayton/t3code","asOf":"2026-11-27","coverage":"all","items":[{"title":"feat(web): adaptive response blocks for agent replies (#1)","url":"https://github.com/FidelisClayton/t3code/pull/1","state":"merged","review":"review-required","checks":"failing","meta":[{"label":"Merged","value":"2026-11-26 17:02 UTC"}],"summary":"No reviews."}]}',
+  );
+  if (!flat) throw new Error("flat resources should parse");
+  await using screen = await render(
+    <MarkdownResourcesBlock resources={flat} renderMarkdown={(text) => text} />,
+  );
+  await expect.element(screen.getByText("Adaptive blocks PRs", { exact: false })).toBeVisible();
+  await expect.element(screen.getByText("No reviews.")).toBeVisible();
+  expect(screen.container.querySelector(".markdown-resources-group")).toBeNull();
+});
+
+it("links a local file item as a Markdown file link", async () => {
+  await using screen = await direct({
+    title: "Docs",
+    scope: "docs/internals",
+    coverage: "all",
+    items: [{ title: "11_mobile-layout.md", url: "/home/clayton/docs/11_mobile-layout.md:12" }],
+  });
+  expect(screen.container.querySelector(".markdown-resources-main p")?.textContent).toBe(
+    "[11\\_mobile-layout.md](/home/clayton/docs/11_mobile-layout.md:12)",
+  );
+});

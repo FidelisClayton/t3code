@@ -29,7 +29,8 @@ export function MarkdownResourcesBlock({
   const gt = useGT();
   const md = (text: string) => inlineMarkdown(text, renderMarkdown);
   const resolve = useMessages();
-  const groups = resources.groups
+  const flat = resources.items.filter((i) => i.group === undefined);
+  const groups = (resources.groups ?? [])
     .map((group) => ({ ...group, items: resources.items.filter((i) => i.group === group.id) }))
     .filter((group) => group.items.length > 0);
   const coverage = {
@@ -129,7 +130,7 @@ export function MarkdownResourcesBlock({
   const row = (item: Item, index: number, groupLabel: string) => {
     const title = item.url
       ? renderMarkdown(
-          `[${escapeLabel(item.title)}](${new URL(item.url).href.replace(/\(/g, "%28").replace(/\)/g, "%29")})`,
+          `[${escapeLabel(item.title)}](${(item.url.startsWith("/") ? item.url : new URL(item.url).href).replace(/\(/g, "%28").replace(/\)/g, "%29")})`,
           false,
           false,
         )
@@ -206,6 +207,7 @@ export function MarkdownResourcesBlock({
           </T>
         </div>
       ) : null}
+      {flat.map((item, index) => row(item, index, ""))}
       {groups.map((group) => {
         const heading = (
           <>

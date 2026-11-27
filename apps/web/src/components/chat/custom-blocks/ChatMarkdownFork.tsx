@@ -8,6 +8,7 @@ import type { Element } from "hast";
 import React, { use, type ComponentProps, type ReactNode, type RefObject } from "react";
 import type ChatMarkdown from "../../ChatMarkdown";
 import { hastPlainTextDeep } from "../markdownHast.logic";
+import { MarkdownInvalidBlock } from "./MarkdownInvalidBlock";
 import { MarkdownChatHandlersContext } from "./MarkdownChatHandlers";
 import {
   MarkdownChoiceCommentTails,
@@ -158,7 +159,7 @@ export function renderForkFence({
   if (isStreaming && !closed && isPendingMarkdownComponent(language, meta))
     return <PendingComponentPlaceholder />;
   if (!closed) return null;
-  return renderMarkdownCustomBlock({
+  const block = renderMarkdownCustomBlock({
     language,
     meta,
     source: code,
@@ -191,6 +192,10 @@ export function renderForkFence({
         namedReferences,
       }),
   });
+  if (block !== null) return block;
+  return isPendingMarkdownComponent(language, meta) && language !== "html" ? (
+    <MarkdownInvalidBlock language={language} source={code} />
+  ) : null;
 }
 
 // Choice comment tails render from the paragraph or list item that holds the choice links.
