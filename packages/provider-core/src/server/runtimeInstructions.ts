@@ -2,11 +2,12 @@ import type { AgentFeedbackMode } from "@t3tools/contracts";
 
 import {
   ADAPTIVE_PRESENTATION_INSTRUCTIONS,
+  ADAPTIVE_PRESENTATION_SECTIONS,
   CHAT_MARKDOWN_INSTRUCTIONS,
 } from "./markdownInstructions.ts";
 import type { ProviderAdapterV2RuntimePolicy } from "./ProviderAdapter.ts";
 
-export { ADAPTIVE_PRESENTATION_INSTRUCTIONS, CHAT_MARKDOWN_INSTRUCTIONS };
+export { ADAPTIVE_PRESENTATION_SECTIONS, CHAT_MARKDOWN_INSTRUCTIONS };
 
 /** None while agent feedback is off, so users who never opt in pay no context for it. */
 export const AGENT_FEEDBACK_INSTRUCTIONS = {

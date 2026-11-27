@@ -226,3 +226,35 @@ it("keeps one radio group, one tab stop and one draft row when a group spans pro
   expect(radios().filter((radio) => radio.tabIndex === 0)).toHaveLength(1);
   await expect.poll(() => draft().match(/Selected g\//g)).toHaveLength(1);
 });
+
+it("keeps four options in one scrolling row and scrolls the focused card into view", async () => {
+  const messageId = MessageId.make(`compare-${++messages}`);
+  const four = {
+    attributes: [{ id: "cost", label: "Cost" }],
+    options: ["a", "b", "c", "d"].map((id) => ({
+      id,
+      title: `Option ${id}`,
+      values: { cost: "Low" },
+      choice: `pick/${id}`,
+    })),
+  };
+  await using screen = await render(
+    <div style={{ inlineSize: 360 }}>
+      <Message value={four} messageId={messageId} onChoiceDraftUpdate={() => true} />
+    </div>,
+  );
+  const row = screen.container.querySelector<HTMLElement>(".markdown-compare-grid")!;
+  const cards = Array.from(row.querySelectorAll("article"));
+  expect(new Set(cards.map((card) => card.getBoundingClientRect().top)).size).toBe(1);
+  expect(row.scrollWidth).toBeGreaterThan(row.clientWidth);
+  await userEvent.click(screen.getByRole("article").filter({ hasText: "Option a" }));
+  for (let step = 0; step < 3; step++) await userEvent.keyboard("{ArrowRight}");
+  await expect.element(screen.getByRole("radio", { name: "Option d" })).toHaveFocus();
+  await expect
+    .poll(() => {
+      const card = cards[3]!.getBoundingClientRect();
+      const bounds = row.getBoundingClientRect();
+      return card.left >= bounds.left && card.right <= bounds.right;
+    })
+    .toBe(true);
+});

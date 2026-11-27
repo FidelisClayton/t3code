@@ -11,6 +11,7 @@ const PRESENTATION_FENCES = new Set([
   "status",
   "swatches",
   "resources",
+  "facts",
 ]);
 
 export function isPendingMarkdownComponent(language: string, meta: string | undefined): boolean {

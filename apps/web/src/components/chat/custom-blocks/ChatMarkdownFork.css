@@ -1,0 +1,7 @@
+/* Inline code takes a tint of the theme's primary so it stands out from prose. Mixing with the
+   contrast foreground keeps it legible in light and dark; user bubbles and theme overrides keep
+   their own, more specific rules. */
+.chat-markdown:not(.user-message-markdown) :not(pre) > code {
+  background: color-mix(in oklch, var(--primary) 14%, transparent);
+  color: color-mix(in oklch, var(--primary) 45%, var(--contrast-foreground));
+}

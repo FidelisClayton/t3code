@@ -32,7 +32,7 @@
 }
 .markdown-swatches-meta {
   color: var(--muted-foreground);
-  font-size: 12px;
+  font-size: var(--text-xs);
   line-height: 1.35;
 }
 .markdown-swatches-meta > span + span::before {

@@ -4,8 +4,8 @@ import type { ScopedThreadRef } from "@t3tools/contracts";
 import { Link } from "@tanstack/react-router";
 import { ArrowUpRightIcon, GitBranchIcon } from "lucide-react";
 import { T, useGT } from "gt-react";
-import type { ReactNode } from "react";
 import { buildThreadRouteParams } from "../../../threadRoutes";
+import { inlineMarkdown, type RenderBlockMarkdown } from "./markdownInline";
 import { MarkdownReferenceLink } from "./MarkdownReferenceLink";
 import type { MarkdownRecapDefinition } from "./markdownRecap";
 import "./MarkdownRecapBlock.css";
@@ -19,9 +19,10 @@ export function MarkdownRecapBlock({
   recap: MarkdownRecapDefinition;
   threadRef: ScopedThreadRef | undefined;
   namedReferences: boolean;
-  renderMarkdown: (body: string, namedReferences?: boolean, sourceChoices?: boolean) => ReactNode;
+  renderMarkdown: RenderBlockMarkdown;
 }) {
   const gt = useGT();
+  const md = (text: string) => inlineMarkdown(text, renderMarkdown);
   const label = (entry: { label: string; reference?: string }) =>
     entry.reference && namedReferences ? (
       <MarkdownReferenceLink
@@ -37,7 +38,7 @@ export function MarkdownRecapBlock({
     );
   return (
     <div className="markdown-recap">
-      <p className="markdown-recap-lead">{recap.lead}</p>
+      <div className="markdown-recap-lead">{md(recap.lead)}</div>
       <div className="markdown-recap-rows">
         {recap.items.map((item, index) => (
           <div className="markdown-recap-row" key={index}>
@@ -47,7 +48,7 @@ export function MarkdownRecapBlock({
                 aria-label={`${item.status === "running" ? "Running" : "Building"}: ${item.summary}`}
               >
                 <i className={`markdown-recap-marker ${item.status}`} aria-hidden="true" />
-                {item.summary}
+                {md(item.summary)}
               </span>
             ) : (
               <details>
@@ -55,7 +56,7 @@ export function MarkdownRecapBlock({
                   aria-label={`${item.status === "running" ? "Running" : "Building"}: ${item.summary}`}
                 >
                   <i className={`markdown-recap-marker ${item.status}`} aria-hidden="true" />
-                  {item.summary}
+                  {md(item.summary)}
                 </summary>
                 <div className="markdown-recap-details">{renderMarkdown(item.details)}</div>
               </details>

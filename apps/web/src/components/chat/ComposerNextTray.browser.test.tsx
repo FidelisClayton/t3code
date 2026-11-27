@@ -4,7 +4,7 @@ import { userEvent } from "vite-plus/test/browser";
 import { render } from "../../../test/render";
 import { NextTray } from "./ComposerNextTray";
 import { markdownChoiceStore } from "./custom-blocks/markdownChoiceState";
-import type { MarkdownNextDefinition } from "./custom-blocks/markdownNext";
+import type { NextEntry } from "./composerNextItems";
 import "../../index.css";
 
 const threadRef = { environmentId: EnvironmentId.make("env"), threadId: ThreadId.make("thread") };
@@ -19,7 +19,8 @@ const item = (ask: string) => ({
     { label: `Skip ${ask}`, choice: `${ask}/skip` },
   ],
 });
-const next: MarkdownNextDefinition = { items: [item("one"), item("two"), item("three")] };
+const entriesFor = (messageId: MessageId, asks: string[]): NextEntry[] =>
+  asks.map((ask, index) => ({ key: `${messageId}:${index}`, messageId, item: item(ask) }));
 
 it("starts collapsed, expands to the first item and clicks the in-message choice", async () => {
   const onClick = vi.fn();
@@ -30,11 +31,11 @@ it("starts collapsed, expands to the first item and clicks the in-message choice
         <button type="button" data-choice-group="one" data-choice-value="do" onClick={onClick} />
       </div>
       <NextTray
-        next={next}
+        entries={entriesFor(messageId, ["one", "two", "three"])}
         threadRef={threadRef}
-        messageId={messageId}
         cwd="/workspace"
         onScrollToEnd={() => {}}
+        onScrollToMessage={() => {}}
       />
     </>,
   );
@@ -64,11 +65,11 @@ it("scrolls once and clicks the in-message button once after it mounts", async (
   const onClick = vi.fn();
   await using screen = await render(
     <NextTray
-      next={next}
+      entries={entriesFor(messageId, ["one", "two", "three"])}
       threadRef={threadRef}
-      messageId={messageId}
       cwd="/workspace"
       onScrollToEnd={onScrollToEnd}
+      onScrollToMessage={() => {}}
     />,
   );
   await userEvent.click(screen.getByRole("button", { name: /Next for you · 3/ }));
@@ -90,4 +91,45 @@ it("scrolls once and clicks the in-message button once after it mounts", async (
   } finally {
     row.remove();
   }
+});
+
+it("lists items from several messages and records a dismissal", async () => {
+  const [older, newer] = [freshMessageId(), freshMessageId()];
+  await using screen = await render(
+    <NextTray
+      entries={[...entriesFor(newer, ["fresh"]), ...entriesFor(older, ["stale"])]}
+      threadRef={threadRef}
+      cwd="/workspace"
+      onScrollToEnd={() => {}}
+      onScrollToMessage={() => {}}
+    />,
+  );
+  await userEvent.click(screen.getByRole("button", { name: /Next for you · 2/ }));
+  await expect.element(screen.getByText("Details of fresh")).toBeVisible();
+  await expect.element(screen.getByText("Details of stale")).not.toBeVisible();
+  await userEvent.click(screen.getByRole("button", { name: "Dismiss this item" }).nth(1));
+  expect(
+    markdownChoiceStore.read(
+      JSON.stringify(["next-dismissed", threadRef.environmentId, threadRef.threadId]),
+    ).selected.dismissed,
+  ).toEqual([`${older}:0`]);
+});
+
+it("stays expanded when the first item is dismissed", async () => {
+  const messageId = freshMessageId();
+  const tray = (asks: string[]) => (
+    <NextTray
+      key={messageId}
+      entries={entriesFor(messageId, asks)}
+      threadRef={threadRef}
+      cwd="/workspace"
+      onScrollToEnd={() => {}}
+      onScrollToMessage={() => {}}
+    />
+  );
+  await using screen = await render(tray(["one", "two"]));
+  await userEvent.click(screen.getByRole("button", { name: /Next for you · 2/ }));
+  await expect.element(screen.getByText("Details of one")).toBeVisible();
+  await screen.rerender(tray(["two"]));
+  await expect.element(screen.getByText("Details of two")).toBeVisible();
 });

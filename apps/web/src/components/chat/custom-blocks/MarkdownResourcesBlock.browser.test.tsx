@@ -32,19 +32,21 @@ const direct = (value: object) =>
   render(
     <MarkdownResourcesBlock
       resources={parseMarkdownResources(JSON.stringify(value))!}
-      renderMarkdown={(body) => <p>{body}</p>}
+      renderMarkdown={(body, _references, _choices, inline) =>
+        inline ? <span>{body}</span> : <p>{body}</p>
+      }
     />,
   );
 
-it("renders the fixture with derived counts and a closed merged group", async () => {
+it("renders the fixture with one header row, per-group counts and a closed merged group", async () => {
   await using screen = await direct(fixture);
-  await expect.element(screen.getByText("Your pull requests")).toBeVisible();
+  await expect.element(screen.getByText("Your pull requests", { exact: false })).toBeVisible();
   await expect
     .element(screen.getByText("Corrected: case-co → casedotco in previous PR URLs"))
     .toBeVisible();
   await expect.element(screen.getByText("Snapshot: 2026-11-25", { exact: false })).toBeVisible();
   await expect.element(screen.getByText("Subset", { exact: false })).toBeVisible();
-  await expect.element(screen.getByText("Open (2) · Merged (2)")).toBeVisible();
+  expect(screen.container.textContent).not.toContain("Open (2) · Merged (2)");
   await expect.element(screen.getByText("Open (2)")).toBeVisible();
   const merged = screen.container.querySelector("details");
   expect(merged?.open).toBe(false);
@@ -83,6 +85,32 @@ it("omits missing diff parts instead of showing zero", async () => {
   const diff = screen.container.querySelector("[aria-label]");
   expect(diff?.getAttribute("aria-label")).toBe("5 additions, 1 file");
   expect(diff?.textContent).toBe("+5 · 1 file");
+});
+
+it("shows pull-request signals as labelled icons, coloring only failing checks", async () => {
+  await using screen = await direct({
+    ...fixture,
+    items: [
+      {
+        group: "open",
+        title: "A",
+        checks: "failing",
+        review: "approved",
+        comments: { human: 2, agent: 0 },
+      },
+      { group: "open", title: "B", checks: "passing" },
+    ],
+  });
+  const failing = screen.getByRole("img", { name: "Some checks were not successful" });
+  await expect.element(failing).toBeVisible();
+  expect(failing.element().parentElement?.dataset.tone).toBe("danger");
+  const passing = screen.getByRole("img", { name: "All checks have passed" });
+  expect(passing.element().parentElement?.dataset.tone).toBeUndefined();
+  await expect.element(screen.getByText("Approved")).toBeInTheDocument();
+  await expect
+    .element(screen.getByRole("img", { name: "2 human comments" }))
+    .toHaveTextContent("2");
+  expect(screen.container.textContent).not.toContain("agent comment");
 });
 
 it("hides an item state that repeats its group label", async () => {

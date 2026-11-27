@@ -32,7 +32,7 @@
   border-radius: 0.3rem;
   background: color-mix(in oklch, var(--foreground) 8%, transparent);
   color: var(--foreground);
-  font-size: 11px;
+  font-size: var(--text-2xs);
   font-variant-numeric: tabular-nums;
   font-weight: 600;
   line-height: 1;
@@ -41,7 +41,7 @@
 .markdown-steps-list[data-ordered="false"] .markdown-steps-item::before {
   background: none;
   color: var(--muted-foreground);
-  font-size: 14px;
+  font-size: inherit;
   content: "•";
 }
 .markdown-steps-head {
@@ -62,7 +62,7 @@
   align-items: baseline;
   gap: 0.125rem 0.625rem;
   color: var(--muted-foreground);
-  font-size: 12px;
+  font-size: var(--text-xs);
   white-space: nowrap;
 }
 .markdown-steps-owner[data-owner="user"] {
@@ -98,41 +98,66 @@
 .markdown-steps-state:is([data-state="pending"], [data-state="unverified"]) > svg {
   color: var(--warning);
 }
-.markdown-steps-parallel {
+/* Sub-steps reuse the step row; the blue letter marks them as parallel siblings. */
+.markdown-steps .markdown-steps-parallel {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  margin: 0;
+  padding: 0;
+  padding-inline-start: 0.75rem;
+  list-style: none;
 }
-.markdown-steps-caption {
-  color: var(--muted-foreground);
-  font-size: 12px;
-}
-.markdown-steps-chips {
+.markdown-steps-sub {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 8.5rem), 1fr));
-  gap: 0.25rem;
-  padding: 0.25rem;
-  border: 1px solid var(--border);
-  border-radius: 0.625rem;
-}
-.markdown-steps-chip {
-  display: flex;
-  flex-wrap: wrap;
+  grid-template-columns: 1.6rem minmax(0, 1fr);
+  column-gap: 0.5rem;
   align-items: baseline;
-  justify-content: space-between;
-  gap: 0.125rem 0.5rem;
-  padding-block: 0.25rem;
-  padding-inline: 0.5rem;
-  border-radius: 0.375rem;
-  background: color-mix(in oklch, var(--foreground) 6%, transparent);
-  color: var(--foreground);
-  font-size: 13px;
+  padding-block: 0.2rem;
+  font-size: var(--markdown-text-compact);
 }
-.markdown-steps-detail summary {
+.markdown-steps-letter {
+  display: grid;
+  place-items: center;
+  align-self: start;
+  block-size: 1.1rem;
+  margin-block-start: 0.15rem;
+  border-radius: 0.25rem;
+  background: color-mix(in oklch, var(--info) 16%, transparent);
+  color: var(--info);
+  font-size: var(--text-2xs);
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  line-height: 1;
+}
+/* The chevron closes the row and wraps together with the owner and state. */
+.markdown-steps-detail > summary::after {
+  display: none;
+}
+.markdown-steps-end {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.markdown-steps-chevron {
+  flex: none;
+  inline-size: 1em;
+  block-size: 1em;
   color: var(--muted-foreground);
-  font-size: 12px;
+}
+.markdown-steps-detail[open] .markdown-steps-chevron {
+  rotate: 180deg;
+}
+@media (hover: hover) and (pointer: fine) {
+  .markdown-steps .markdown-steps-detail > summary:hover {
+    text-decoration: none;
+  }
+  .markdown-steps-detail > summary:hover .markdown-steps-label {
+    text-decoration: underline dotted;
+    text-decoration-color: var(--muted-foreground);
+    text-underline-offset: 3px;
+  }
 }
 .markdown-steps-detail > .chat-markdown {
   padding-block-start: 0.25rem;
-  font-size: 13px;
+  font-size: var(--markdown-text-compact);
 }

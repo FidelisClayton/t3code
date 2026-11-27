@@ -50,6 +50,20 @@ describe("Markdown resources", () => {
     expect(parse(withItem({ diff: { files: 1.5 } }))).toBeNull();
   });
 
+  it("accepts pull-request signals and rejects unknown values", () => {
+    const signals = { checks: "failing", review: "changes-requested", comments: { human: 2 } };
+    expect(parse(withItem(signals))?.items[0]).toMatchObject(signals);
+    const invalid = [
+      { checks: "green" },
+      { review: "changes_requested" },
+      { comments: {} },
+      { comments: { human: -1 } },
+      { comments: { agent: 1.5 } },
+      { comments: { bots: 1 } },
+    ];
+    for (const value of invalid) expect(parse(withItem(value))).toBeNull();
+  });
+
   it("rejects invalid structure", () => {
     const invalid = [
       { ...fixture, extra: true },

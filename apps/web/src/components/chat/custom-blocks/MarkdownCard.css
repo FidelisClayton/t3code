@@ -1,5 +1,8 @@
-/* One bordered surface per presentation block; children are spaced by the card's gap. */
+/* One bordered surface per presentation block; children are spaced by the card's gap.
+   Sizes come from the theme's text tokens, which the interface font size setting scales;
+   compact sits between sm and xs. */
 .markdown-card {
+  --markdown-text-compact: calc((var(--text-sm) + var(--text-xs)) / 2);
   container-type: inline-size;
   display: flex;
   flex-direction: column;
@@ -10,7 +13,7 @@
   border: 1px solid var(--border);
   border-radius: var(--radius-xl, 0.75rem);
   background: var(--card);
-  font-size: 14px;
+  font-size: var(--text-sm);
   line-height: 1.45;
   overflow-wrap: anywhere;
 }
@@ -40,8 +43,13 @@
   padding-block-start: 0.5rem;
   border-block-start: 1px solid var(--border);
   color: var(--muted-foreground);
-  font-size: 12px;
+  font-size: var(--text-xs);
   line-height: 1.4;
+}
+/* Inline Markdown in a block field keeps the field's type; its paragraph flows inline. */
+.chat-markdown.markdown-inline > p {
+  display: inline;
+  margin: 0;
 }
 .markdown-card-footnote > svg {
   flex: none;

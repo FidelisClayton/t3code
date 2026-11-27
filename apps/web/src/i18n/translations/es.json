@@ -4247,6 +4247,8 @@
   ],
   "02d9667ff2c8e0b8": "Issue {key}: {title}",
   "4276743ee60a3c62": "{count, plural, one {{count} comentario} other {{count} comentarios}}",
+  "c760e0cfba0191b5": "{count, plural, one {{count} comentario humano} other {{count} comentarios humanos}}",
+  "c6325063a80c858e": "{count, plural, one {{count} comentario de agente} other {{count} comentarios de agentes}}",
   "42f634397f3960aa": "Mostrar en los detalles del hilo",
   "e3738ef0423ddfe7": "Restablecer al valor predeterminado",
   "ae10d34e11064fec": "Control de versiones",
@@ -13078,7 +13080,14 @@
   "3ee30a50b70fffab": "Retirada por {by}: {reason}",
   "92e129bf413a1220": "retirada",
   "3c72dc575f721642": "Comparación",
-  "ebc5cc3425d6f400": "Recomendado: {reason}",
+  "00b8427f5533f3f3": [
+    "Recomendado: ",
+    {
+      "i": 1,
+      "k": "_gt_value_1",
+      "v": "v"
+    }
+  ],
   "045741aa62df51f8": "Todos",
   "4a89213f7f6ed452": "Subconjunto",
   "3cb260a9d452b688": "Cobertura desconocida",
@@ -13086,8 +13095,14 @@
   "f4d3d672c802fa7c": "{n} eliminaciones",
   "14bfb46fe7af56b1": "{n, plural, one {{n} archivo} other {{n} archivos}}",
   "70332291f576f89c": "Último estado conocido",
-  "e11b4a76913e3c96": "Siguiente: {next}",
-  "0d2bc0f3f61f45d1": "Corregido: {text}",
+  "adc6f5abeaa7f7e4": [
+    "Corregido: ",
+    {
+      "i": 1,
+      "k": "_gt_value_1",
+      "v": "v"
+    }
+  ],
   "9c47de709f1bb707": "Instantánea: {date}",
   "5030552f64818ac6": "Verificado",
   "ebf9de87c1b99be3": "Informado",
@@ -13101,7 +13116,14 @@
   "ac3db5dcb7bde8d1": "Compromiso",
   "c6dfa14c4e7e93e1": "Reversible",
   "efb5e71c17a2a958": "Corregido",
-  "dd758329720bd151": "Predeterminado: {text}",
+  "61b5f9ac858541ce": [
+    "Predeterminado: ",
+    {
+      "i": 1,
+      "k": "_gt_value_1",
+      "v": "v"
+    }
+  ],
   "8d8555364510a069": "Planificado",
   "4dccb48528cb04d2": "Bloqueado",
   "ba13de19c088369a": "Pasos",
@@ -13130,5 +13152,15 @@
       "v": "v"
     },
     " más en Elementos vinculados"
-  ]
+  ],
+  "3acf12b2cb3610fc": "Problema",
+  "998cb420278aa65d": "Advertencia",
+  "4e137eecc9a8cdf8": "Información",
+  "75bf85771e4840ad": "Correcto",
+  "a87fbebd3d0e2afb": "{count, plural, one {{count} problema} other {{count} problemas}}",
+  "2a63f03ffa9d4fdf": "{count, plural, one {{count} advertencia} other {{count} advertencias}}",
+  "31c3ed77e1676202": "{count} info",
+  "37ddd27476352d2f": "{count} OK",
+  "57ff60eef95c3b10": "Descartar este elemento",
+  "63790659557f315e": "Mostrar detalles"
 }

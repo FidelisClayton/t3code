@@ -7,6 +7,7 @@ const MarkdownMetrics = Schema.Struct({
       label: text(128),
       value: text(32),
       qualifier: Schema.optionalKey(text(256)),
+      tone: Schema.optionalKey(Schema.Literals(["good", "warn", "bad"])),
     }),
   ).check(Schema.isMaxLength(4)),
 });
@@ -21,3 +22,11 @@ export function parseMarkdownMetrics(source: string) {
   }
 }
 export type MarkdownMetricsDefinition = NonNullable<ReturnType<typeof parseMarkdownMetrics>>;
+
+// "+14.419 / −185" or "+1,234 −56": a plus count and a minus count, GitHub diff style.
+const DIFF_VALUE = /^(\+\d[\d.,]*)(\s*\/\s*|\s+)([-−]\d[\d.,]*)$/;
+
+export function parseDiffValue(value: string) {
+  const match = DIFF_VALUE.exec(value.trim());
+  return match ? { added: match[1]!, separator: match[2]!, removed: match[3]! } : null;
+}

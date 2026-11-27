@@ -44,7 +44,11 @@ export function MarkdownNextBlock({
 }) {
   const gt = useGT();
   const answer = useMarkdownAnswer(messageId);
-  const answered = answer !== undefined;
+  // A reply that ignores the card's buttons leaves it open; the composer tray still lists it.
+  const choices = next.items.flatMap((item) => item.actions?.map((action) => action.choice) ?? []);
+  const answered =
+    answer !== undefined &&
+    (choices.length === 0 || choices.some((choice) => answer.picked.has(choice)));
   const accordion = useId();
   const multiple = next.items.length > 1;
   const typeLabels = useNextTypeLabels();

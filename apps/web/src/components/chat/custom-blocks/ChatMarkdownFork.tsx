@@ -18,6 +18,7 @@ import { parseMarkdownChoiceHref } from "./markdownChoiceLinks";
 import { renderMarkdownCustomBlock } from "./MarkdownCustomBlock";
 import { MarkdownReferenceLink } from "./MarkdownReferenceLink";
 import { MarkdownReferenceScope } from "./MarkdownReferenceScope";
+import "./ChatMarkdownFork.css";
 
 type ChatMarkdownProps = ComponentProps<typeof ChatMarkdown>;
 
@@ -55,6 +56,7 @@ export function isForkMarkdownHref(href: string): boolean {
 export function renderForkAnchor({
   node,
   href,
+  title,
   children,
   text,
   state,
@@ -62,6 +64,7 @@ export function renderForkAnchor({
 }: {
   node: Element | undefined;
   href: string | undefined;
+  title: string | undefined;
   children: ReactNode;
   text: string;
   state: ForkMarkdownState;
@@ -107,7 +110,12 @@ export function renderForkAnchor({
   const choice = href ? parseMarkdownChoiceHref(href) : null;
   if (!choice) return null;
   return customBlocks ? (
-    <MarkdownInlineChoice key={href} choice={choice} label={hastPlainTextDeep(node)}>
+    <MarkdownInlineChoice
+      key={href}
+      choice={choice}
+      label={hastPlainTextDeep(node)}
+      details={title}
+    >
       {children}
     </MarkdownInlineChoice>
   ) : (
@@ -157,9 +165,15 @@ export function renderForkFence({
     threadRef,
     messageId: state.messageId,
     namedReferences: state.namedReferences,
-    renderMarkdown: (body, namedReferences = state.namedReferences, sourceChoices = true) =>
+    renderMarkdown: (
+      body,
+      namedReferences = state.namedReferences,
+      sourceChoices = true,
+      inline = false,
+    ) =>
       renderMarkdown({
         text: body,
+        ...(inline ? { inline, className: "markdown-inline" } : {}),
         messageId: sourceChoices ? state.messageId : undefined,
         cwd: state.cwd,
         threadRef,

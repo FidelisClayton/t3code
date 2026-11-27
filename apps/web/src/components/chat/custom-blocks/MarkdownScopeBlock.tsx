@@ -3,16 +3,24 @@ import { useGT } from "gt-react";
 import { InfoIcon } from "lucide-react";
 
 import { cn } from "~/lib/utils";
+import { inlineMarkdown, type RenderBlockMarkdown } from "./markdownInline";
 import type { MarkdownScopeDefinition } from "./markdownScope";
 import "./MarkdownCard.css";
 
-export function MarkdownScopeBlock({ scope }: { scope: MarkdownScopeDefinition }) {
+export function MarkdownScopeBlock({
+  scope,
+  renderMarkdown,
+}: {
+  scope: MarkdownScopeDefinition;
+  renderMarkdown: RenderBlockMarkdown;
+}) {
   const gt = useGT();
+  const md = (text: string) => inlineMarkdown(text, renderMarkdown);
   const max = Math.max(...scope.items.map((item) => item.count));
   const hasNotes = scope.items.some((item) => item.note);
   return (
     <div className="markdown-card">
-      <p className="markdown-card-title">{scope.title}</p>
+      <div className="markdown-card-title">{md(scope.title)}</div>
       <ul className="markdown-card-list grid grid-cols-[fit-content(45%)_minmax(3rem,1fr)_auto] items-center gap-x-3 gap-y-1.5">
         {scope.items.map((item, index) => {
           const emphasized = hasNotes ? item.note !== undefined : item.count === max;
@@ -23,10 +31,10 @@ export function MarkdownScopeBlock({ scope }: { scope: MarkdownScopeDefinition }
               className="col-span-full grid grid-cols-subgrid items-center"
             >
               <span className={cn("min-w-0", emphasized && "font-medium text-foreground")}>
-                {item.label}
+                {md(item.label)}
                 {item.note ? (
                   <span className="ms-1.5 text-xs font-medium text-warning-foreground">
-                    {item.note}
+                    {md(item.note)}
                   </span>
                 ) : null}
               </span>
@@ -52,15 +60,15 @@ export function MarkdownScopeBlock({ scope }: { scope: MarkdownScopeDefinition }
         })}
       </ul>
       {scope.overlapping || scope.caveat ? (
-        <p className="markdown-card-footnote">
+        <div className="markdown-card-footnote">
           <InfoIcon aria-hidden="true" />
           <span className="flex flex-col">
             {scope.overlapping ? (
               <span>{gt("Categories overlap, so counts don't add up")}</span>
             ) : null}
-            {scope.caveat ? <span>{scope.caveat}</span> : null}
+            {scope.caveat ? <span>{md(scope.caveat)}</span> : null}
           </span>
-        </p>
+        </div>
       ) : null}
     </div>
   );
