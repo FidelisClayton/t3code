@@ -13167,5 +13167,7 @@
   "31c3ed77e1676202": "{count} info",
   "37ddd27476352d2f": "{count} OK",
   "57ff60eef95c3b10": "Dispensar este item",
-  "63790659557f315e": "Mostrar detalhes"
+  "63790659557f315e": "Mostrar detalhes",
+  "948e9dede9fff51b": "Não foi possível mostrar este bloco {block}",
+  "b1cc8f4ddbfda715": "Mostrar bruto"
 }

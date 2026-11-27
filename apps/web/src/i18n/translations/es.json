@@ -13162,5 +13162,7 @@
   "31c3ed77e1676202": "{count} info",
   "37ddd27476352d2f": "{count} OK",
   "57ff60eef95c3b10": "Descartar este elemento",
-  "63790659557f315e": "Mostrar detalles"
+  "63790659557f315e": "Mostrar detalles",
+  "948e9dede9fff51b": "No se pudo mostrar este bloque {block}",
+  "b1cc8f4ddbfda715": "Mostrar sin procesar"
 }

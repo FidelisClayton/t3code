@@ -18,7 +18,8 @@ describe("buildCodexAdditionalContext", () => {
         const context = buildCodexAdditionalContext(runtime, availability);
         NodeAssert.equal(context.t3_code_markdown?.kind, "application");
         NodeAssert.match(context.t3_code_markdown!.value, /## Chat components/);
-        NodeAssert.match(context.t3_code_presentation_01!.value, /## Response presentation/);
+        NodeAssert.match(context.t3_code_presentation_01!.value, /## Reader with ADHD/);
+        NodeAssert.match(context.t3_code_presentation_02!.value, /## Response presentation/);
         NodeAssert.doesNotMatch(context.t3_code_runtime!.value, /## Chat components/);
         NodeAssert.equal(
           Object.values(context)

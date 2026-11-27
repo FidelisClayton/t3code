@@ -13172,5 +13172,7 @@
   "31c3ed77e1676202": "{count} info",
   "37ddd27476352d2f": "{count} ok",
   "57ff60eef95c3b10": "Dismiss this item",
-  "63790659557f315e": "Show details"
+  "63790659557f315e": "Show details",
+  "948e9dede9fff51b": "Couldn't show this {block} block",
+  "b1cc8f4ddbfda715": "Show raw"
 }

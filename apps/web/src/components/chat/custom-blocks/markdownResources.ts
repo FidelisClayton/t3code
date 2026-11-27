@@ -6,7 +6,10 @@ const id = (max: number) =>
   Schema.String.check(Schema.isPattern(/^[A-Za-z0-9_-]+$/), Schema.isMaxLength(max));
 const count = Schema.Int.check(Schema.isGreaterThanOrEqualTo(0));
 const nonEmpty = Schema.makeFilter((value: object) => Object.keys(value).length > 0);
-const isHttpUrl = (value: string) => {
+// Absolute local path, optionally `:line` or `:line:col`, as in chat Markdown file links.
+const isLocalPath = (value: string) => /^\/[^\s/]\S*$/.test(value);
+const isResourceUrl = (value: string) => {
+  if (isLocalPath(value)) return true;
   try {
     const { protocol } = new URL(value);
     return protocol === "http:" || protocol === "https:";
@@ -25,19 +28,21 @@ const MarkdownResources = Schema.Struct({
     ),
   ),
   coverage: Schema.Literals(["all", "subset", "unknown"]),
-  groups: Schema.NonEmptyArray(
-    Schema.Struct({
-      id: id(64),
-      label: text(128),
-      collapsed: Schema.optionalKey(Schema.Boolean),
-    }),
-  ).check(Schema.isMaxLength(10)),
+  groups: Schema.optionalKey(
+    Schema.NonEmptyArray(
+      Schema.Struct({
+        id: id(64),
+        label: text(128),
+        collapsed: Schema.optionalKey(Schema.Boolean),
+      }),
+    ).check(Schema.isMaxLength(10)),
+  ),
   items: Schema.Array(
     Schema.Struct({
-      group: id(64),
+      group: Schema.optionalKey(id(64)),
       id: Schema.optionalKey(text(64)),
       title: text(512),
-      url: Schema.optionalKey(Schema.String.check(Schema.makeFilter(isHttpUrl))),
+      url: Schema.optionalKey(Schema.String.check(Schema.makeFilter(isResourceUrl))),
       state: Schema.optionalKey(text(64)),
       summary: Schema.optionalKey(text(1024)),
       meta: Schema.optionalKey(
@@ -72,9 +77,12 @@ export function parseMarkdownResources(source: string) {
   if (source.length > 65536) return null;
   try {
     const resources = decode(JSON.parse(source));
-    const ids = new Set(resources.groups.map((group) => group.id));
-    if (ids.size !== resources.groups.length) return null;
-    if (resources.items.some((item) => !ids.has(item.group))) return null;
+    const declared = resources.groups ?? [];
+    const ids = new Set(declared.map((group) => group.id));
+    if (ids.size !== declared.length) return null;
+    if (resources.items.some((item) => item.group !== undefined && !ids.has(item.group))) {
+      return null;
+    }
     return resources;
   } catch {
     return null;

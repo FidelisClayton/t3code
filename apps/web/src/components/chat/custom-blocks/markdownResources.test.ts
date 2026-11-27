@@ -31,9 +31,37 @@ const withItem = (extra: object) => ({
   items: [{ ...fixture.items[0], ...extra }],
 });
 
+const flat =
+  '{"title":"Adaptive blocks PRs","scope":"FidelisClayton/t3code","asOf":"2026-11-27","coverage":"all","items":[{"title":"feat(web): adaptive response blocks for agent replies (#1)","url":"https://github.com/FidelisClayton/t3code/pull/1","state":"merged","review":"review-required","checks":"failing","meta":[{"label":"Merged","value":"2026-11-26 17:02 UTC"}],"summary":"No reviews."}]}';
+
 describe("Markdown resources", () => {
+  it("parses a flat list without groups", () => {
+    expect(parseMarkdownResources(flat)?.items).toHaveLength(1);
+  });
+
+  it("allows an ungrouped item alongside groups but rejects an unknown group", () => {
+    const { group: _group, ...ungrouped } = fixture.items[0]!;
+    expect(parse({ ...fixture, items: [ungrouped, fixture.items[2]] })?.items).toHaveLength(2);
+    expect(parse({ ...fixture, items: [{ ...ungrouped, group: "nope" }] })).toBeNull();
+  });
+
   it("accepts the pull-request overview fixture", () => {
     expect(parse(fixture)?.items).toHaveLength(4);
+  });
+
+  it("accepts the local-file docs list from a real reply", () => {
+    const reply =
+      '{"title":"Ler antes de mexer no mobile layout","scope":"docs/internals","coverage":"all","items":[{"title":"11_mobile-layout.md","url":"/home/clayton/.t3/worktrees/t3code/t3-prompt-eval/docs/internals/11_mobile-layout.md","summary":"O doc principal."},{"title":"12_mobile-navigation.md","url":"/home/clayton/x/12_mobile-navigation.md","summary":"Navegação."}]}';
+    expect(parseMarkdownResources(reply)?.items).toHaveLength(2);
+  });
+
+  it("accepts absolute paths with a line suffix but not relative or protocol-relative ones", () => {
+    for (const ok of ["/a/b.ts", "/a/b.ts:12", "/a/b.ts:12:3"]) {
+      expect(parse(withItem({ url: ok }))).not.toBeNull();
+    }
+    for (const bad of ["a/b.ts", "./b.ts", "//evil.example/x", "/a b", "file:///a/b", "/"]) {
+      expect(parse(withItem({ url: bad }))).toBeNull();
+    }
   });
 
   it("rejects non-http urls but allows a missing url", () => {

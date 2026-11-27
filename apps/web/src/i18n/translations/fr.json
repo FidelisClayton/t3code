@@ -13167,5 +13167,7 @@
   "31c3ed77e1676202": "{count} info",
   "37ddd27476352d2f": "{count} OK",
   "57ff60eef95c3b10": "Ignorer cet élément",
-  "63790659557f315e": "Afficher les détails"
+  "63790659557f315e": "Afficher les détails",
+  "948e9dede9fff51b": "Impossible d'afficher ce bloc {block}",
+  "b1cc8f4ddbfda715": "Afficher le brut"
 }
