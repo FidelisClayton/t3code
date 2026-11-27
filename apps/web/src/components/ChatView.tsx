@@ -437,6 +437,7 @@ const EMPTY_PROVIDER_MODELS: ServerProvider["models"] = [];
 const EMPTY_USAGE_LIMIT_SOURCES: UsageLimitSourceSnapshots = [];
 import type { CodexArtifactTemplate } from "@t3tools/shared/codexArtifactTemplates";
 import { useRunPanelChatControls } from "./run-panel/RunPanel";
+import { scrollTimelineToMessage } from "./chat/ComposerNextTray";
 
 const EMPTY_FEEDBACK_SUBMISSIONS: ReadonlyArray<CodexFeedbackSubmission> = [];
 const EMPTY_PROVIDER_SKILLS: ServerProvider["skills"] = [];
@@ -3225,6 +3226,9 @@ export default function ChatView(props: ChatViewProps) {
   const onWorktreeSetupWorkLocallyStable = useStableCallback(onWorktreeSetupWorkLocally);
   const onComposerSendStable = useStableCallback(onSend);
   const onComposerScrollToEndStable = useStableCallback(() => scrollToEnd());
+  const onComposerScrollToMessageStable = useStableCallback((messageId: string) =>
+    scrollTimelineToMessage(legendListRef.current, messageId),
+  );
   const sendPreviewAnnotation = (
     annotation: PreviewAnnotationPayload,
     image: ComposerImageAttachment | null,
@@ -4004,6 +4008,7 @@ export default function ChatView(props: ChatViewProps) {
                                 onPageScrollKeyUp={onComposerPageScrollKeyUpStable}
                                 onPageScrollRelease={onComposerPageScrollReleaseStable}
                                 onScrollToEnd={onComposerScrollToEndStable}
+                                onScrollToMessage={onComposerScrollToMessageStable}
                                 onCompactContext={onComposerCompactContextStable}
                                 onSend={onComposerSendStable}
                                 captureDetachedSend={captureDetachedSend}

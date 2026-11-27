@@ -1,6 +1,13 @@
 import { useGT } from "gt-react";
 import { useStableCallback } from "~/hooks/useStableCallback";
-import { CheckIcon, CircleIcon, CircleDotIcon, SquareIcon, SquareCheckIcon } from "lucide-react";
+import {
+  CheckIcon,
+  CircleIcon,
+  CircleDotIcon,
+  InfoIcon,
+  SquareIcon,
+  SquareCheckIcon,
+} from "lucide-react";
 import {
   createContext,
   use,
@@ -17,6 +24,7 @@ import type { Element, ElementContent } from "hast";
 import { hastPlainTextDeep } from "../markdownHast.logic";
 import { cn } from "~/lib/utils";
 import { Popover, PopoverPopup, PopoverTrigger } from "../../ui/popover";
+import { PreviewCard, PreviewCardPopup, PreviewCardTrigger } from "../../ui/preview-card";
 import { ChoiceCommentEditor } from "./ChoiceCommentEditor";
 import { resolveAssistantCitationCommentDismissal } from "../assistantCitationCommentDismissal";
 import {
@@ -250,11 +258,14 @@ export function MarkdownInlineChoice({
   choice,
   children,
   label,
+  details,
   card = false,
 }: {
   choice: MarkdownChoice;
   children: ReactNode;
   label: string;
+  /** The link's Markdown title: plain text shown on hover or focus, and from an info button on touch. */
+  details?: string | undefined;
   card?: boolean;
 }) {
   const gt = useGT();
@@ -282,65 +293,107 @@ export function MarkdownInlineChoice({
       : selected
         ? SquareCheckIcon
         : SquareIcon;
+  const choiceButton = (
+    <button
+      ref={registerPhrase}
+      type="button"
+      id={choiceId}
+      role={choice.mode === "single" ? "radio" : "checkbox"}
+      aria-checked={selected}
+      data-picked={picked || undefined}
+      data-choice-message={state.id}
+      data-choice-group={choice.group}
+      data-choice-value={choice.value}
+      tabIndex={choice.mode === "multi" ? 0 : -1}
+      aria-description={
+        [details, comment ? gt("Has comment") : undefined].filter(Boolean).join(". ") || undefined
+      }
+      className={cn(
+        "cursor-pointer rounded-sm text-inherit focus-visible:outline-2 focus-visible:outline-ring",
+        !card && "inline hover:text-primary active:bg-accent pointer-coarse:min-h-11",
+        selected && !card && "underline decoration-primary underline-offset-3",
+        details &&
+          !selected &&
+          !card &&
+          "underline decoration-dotted decoration-muted-foreground underline-offset-3",
+      )}
+      onClick={() => state.toggle(choice)}
+      onKeyDown={(event) => {
+        if (choice.mode !== "single" || event.nativeEvent.isComposing) return;
+        const step =
+          event.key === "ArrowRight" || event.key === "ArrowDown"
+            ? 1
+            : event.key === "ArrowLeft" || event.key === "ArrowUp"
+              ? -1
+              : 0;
+        if (!step) return;
+        const radios = Array.from(
+          outermostChatMarkdown(event.currentTarget)?.querySelectorAll<HTMLButtonElement>(
+            `button[data-choice-message="${state.id}"][data-choice-group="${choice.group}"][role="radio"]`,
+          ) ?? [],
+        );
+        const index = radios.indexOf(event.currentTarget);
+        if (index < 0) return;
+        event.preventDefault();
+        const next = radios[(index + step + radios.length) % radios.length]!;
+        next.focus();
+        if (next.getAttribute("aria-checked") !== "true") next.click();
+      }}
+    >
+      <ChoiceIcon aria-hidden="true" className="me-1 inline size-3.5 align-[-0.15em]" />
+      {children}
+      {comment ? (
+        <span
+          className="ms-1 inline-block size-1 rounded-full bg-primary align-super"
+          aria-hidden="true"
+        />
+      ) : null}
+    </button>
+  );
   return (
     <span
       className={card ? "group/choice" : "group/choice relative inline"}
       data-markdown-copy={`[${label}](${choice.mode === "single" ? "choice" : "choices"}:${key})`}
     >
-      <button
-        ref={registerPhrase}
-        type="button"
-        id={choiceId}
-        role={choice.mode === "single" ? "radio" : "checkbox"}
-        aria-checked={selected}
-        data-picked={picked || undefined}
-        data-choice-message={state.id}
-        data-choice-group={choice.group}
-        data-choice-value={choice.value}
-        tabIndex={choice.mode === "multi" ? 0 : -1}
-        aria-description={comment ? gt("Has comment") : undefined}
-        className={cn(
-          "cursor-pointer rounded-sm text-inherit focus-visible:outline-2 focus-visible:outline-ring",
-          !card && "inline hover:text-primary active:bg-accent pointer-coarse:min-h-11",
-          selected && !card && "underline decoration-primary underline-offset-3",
-        )}
-        onClick={() => state.toggle(choice)}
-        onKeyDown={(event) => {
-          if (choice.mode !== "single" || event.nativeEvent.isComposing) return;
-          const step =
-            event.key === "ArrowRight" || event.key === "ArrowDown"
-              ? 1
-              : event.key === "ArrowLeft" || event.key === "ArrowUp"
-                ? -1
-                : 0;
-          if (!step) return;
-          const radios = Array.from(
-            outermostChatMarkdown(event.currentTarget)?.querySelectorAll<HTMLButtonElement>(
-              `button[data-choice-message="${state.id}"][data-choice-group="${choice.group}"][role="radio"]`,
-            ) ?? [],
-          );
-          const index = radios.indexOf(event.currentTarget);
-          if (index < 0) return;
-          event.preventDefault();
-          const next = radios[(index + step + radios.length) % radios.length]!;
-          next.focus();
-          if (next.getAttribute("aria-checked") !== "true") next.click();
-        }}
-      >
-        <ChoiceIcon aria-hidden="true" className="me-1 inline size-3.5 align-[-0.15em]" />
-        {children}
-        {comment ? (
-          <span
-            className="ms-1 inline-block size-1 rounded-full bg-primary align-super"
-            aria-hidden="true"
-          />
-        ) : null}
-      </button>
+      {details ? (
+        <PreviewCard>
+          <PreviewCardTrigger delay={300} closeDelay={100} render={choiceButton} />
+          <PreviewCardPopup align="start" className="w-max max-w-80">
+            <p className="p-2 text-xs leading-5">{details}</p>
+          </PreviewCardPopup>
+        </PreviewCard>
+      ) : (
+        choiceButton
+      )}
+      {details ? (
+        <Popover>
+          <PopoverTrigger aria-label={gt("Show details")} render={<MarkdownChoiceDetailsButton />}>
+            <InfoIcon aria-hidden="true" className="size-3.5" />
+          </PopoverTrigger>
+          <PopoverPopup anchor={phraseRef} width="sm" padding="compact" side="top">
+            <p className="px-1 text-xs leading-5">{details}</p>
+          </PopoverPopup>
+        </Popover>
+      ) : null}
       <MarkdownChoiceComment options={[{ ...choice, label }]} anchorRef={phraseRef} />
       {card ? (
         <MarkdownChoiceComment options={[{ ...choice, label }]} anchorRef={phraseRef} tail />
       ) : null}
     </span>
+  );
+}
+
+function MarkdownChoiceDetailsButton({ className, ...props }: ComponentProps<"button">) {
+  return (
+    <button
+      data-markdown-copy=""
+      data-thread-find-ignore="true"
+      className={cn(
+        "ms-0.5 hidden size-6 cursor-pointer touch-manipulation items-center justify-center rounded-full align-middle text-muted-foreground active:text-foreground focus-visible:outline-2 focus-visible:outline-ring pointer-coarse:inline-flex [@media(hover:none)]:inline-flex",
+        className,
+      )}
+      {...props}
+    />
   );
 }
 

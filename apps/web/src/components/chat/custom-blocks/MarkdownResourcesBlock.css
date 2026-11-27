@@ -1,16 +1,23 @@
+/* Title and scope on the left, coverage on the right; on a narrow card the coverage wraps
+   under the title, where space-between leaves a lone item at the start. */
 .markdown-resources-header {
   display: flex;
-  flex-direction: column;
-  gap: 0.125rem;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.125rem 0.75rem;
+}
+.markdown-resources-header .markdown-card-title > .markdown-resources-muted {
+  margin-inline-start: 0.25rem;
+  font-weight: 400;
 }
 .markdown-resources-muted {
   color: var(--muted-foreground);
-  font-size: 12px;
+  font-size: var(--text-xs);
 }
 .markdown-resources-bar {
   display: flex;
   block-size: 6px;
-  margin-block-start: 0.25rem;
   overflow: clip;
   border-radius: 3px;
   background: color-mix(in oklch, var(--foreground) 8%, transparent);
@@ -32,7 +39,7 @@
   border-radius: 0.375rem;
   background: var(--warning-surface);
   color: var(--foreground);
-  font-size: 13px;
+  font-size: var(--markdown-text-compact);
 }
 .markdown-resources-note > svg {
   flex: none;
@@ -44,7 +51,7 @@
 .markdown-resources-heading {
   padding-block-end: 0.25rem;
   color: var(--foreground);
-  font-size: 13px;
+  font-size: var(--markdown-text-compact);
   font-weight: 600;
 }
 .markdown-resources-count {
@@ -71,7 +78,7 @@
 }
 .markdown-resources-id {
   color: var(--muted-foreground);
-  font-size: 13px;
+  font-size: var(--markdown-text-compact);
   font-variant-numeric: tabular-nums;
 }
 .markdown-resources-main {
@@ -83,6 +90,32 @@
 }
 .markdown-resources .markdown-resources-main p {
   margin: 0;
+}
+/* The linked title renders as nested chat markdown, which is full width; size it to its text so
+   the signals can share its line. */
+.markdown-resources-main > .chat-markdown {
+  inline-size: auto;
+}
+.markdown-resources-signals {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.625rem;
+  margin-inline-start: auto;
+  color: var(--muted-foreground);
+  font-size: var(--text-xs);
+  font-variant-numeric: tabular-nums;
+}
+.markdown-resources-signals > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.1875rem;
+}
+.markdown-resources-signals svg {
+  inline-size: 1.15em;
+  block-size: 1.15em;
+}
+.markdown-resources-signals > [data-tone="danger"] {
+  color: var(--destructive);
 }
 .markdown-resources-add {
   color: var(--success-foreground);

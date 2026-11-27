@@ -34,7 +34,7 @@ it("answers only assistant messages followed by a user message", () => {
   expect([...answers.keys()]).toEqual(["a1"]);
 });
 
-it("collects picked keys from rows citing the message, up to the next assistant message", () => {
+it("collects picked keys from rows citing the message, also from later replies", () => {
   const answers = deriveMarkdownAnswers(
     [
       entry("assistant", "a1"),
@@ -44,6 +44,19 @@ it("collects picked keys from rows citing the message, up to the next assistant 
     ],
     thread,
   );
-  expect([...answers.get(MessageId.make("a1"))!.picked]).toEqual(["g/one"]);
+  expect([...answers.get(MessageId.make("a1"))!.picked]).toEqual(["g/one", "g/late"]);
   expect([...answers.get(MessageId.make("a2"))!.picked]).toEqual(["h/yes"]);
+});
+
+it("attributes a selection to an earlier assistant message it cites", () => {
+  const answers = deriveMarkdownAnswers(
+    [
+      entry("assistant", "a1"),
+      entry("user", "u1", "unrelated"),
+      entry("assistant", "a2"),
+      entry("user", "u2", row("a1", "g/go")),
+    ],
+    thread,
+  );
+  expect([...answers.get(MessageId.make("a1"))!.picked]).toEqual(["g/go"]);
 });

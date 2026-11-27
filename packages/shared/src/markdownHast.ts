@@ -166,7 +166,8 @@ export const CHAT_MARKDOWN_SANITIZE_SCHEMA = {
     // Spaces typed at the start of a user's line (keepLeadingWhitespace).
     span: [...(defaultSchema.attributes?.span ?? []), "dataLeadingWhitespace"],
     div: [...(defaultSchema.attributes?.div ?? []), ...CODEX_ARTIFACT_TEMPLATE_HAST_PROPERTIES],
-    a: [...(defaultSchema.attributes?.a ?? []), "dataPullRequestAutolink"],
+    // `title` is stripped everywhere else; choice links carry their option details in it.
+    a: [...(defaultSchema.attributes?.a ?? []), "dataPullRequestAutolink", "title"],
     img: [
       ...(defaultSchema.attributes?.img ?? []),
       "dataDarkSrc",

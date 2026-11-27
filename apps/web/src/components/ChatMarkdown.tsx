@@ -1294,7 +1294,7 @@ const CHAT_MARKDOWN_COMPONENTS = {
       />
     );
   },
-  a: function MarkdownAnchor({ node, href, children, title: _title, ...props }) {
+  a: function MarkdownAnchor({ node, href, children, title, ...props }) {
     const gt = useGT();
     const {
       canOperateHost,
@@ -1325,6 +1325,7 @@ const CHAT_MARKDOWN_COMPONENTS = {
     const forkAnchor = renderForkAnchor({
       node,
       href,
+      title,
       children,
       text,
       state: use(ChatMarkdownRendererContext),

@@ -1,9 +1,11 @@
+import { PullRequestChecksState, PullRequestReviewDecision } from "@t3tools/contracts";
 import * as Schema from "effect/Schema";
 
 const text = (max: number) => Schema.String.check(Schema.isPattern(/\S/), Schema.isMaxLength(max));
 const id = (max: number) =>
   Schema.String.check(Schema.isPattern(/^[A-Za-z0-9_-]+$/), Schema.isMaxLength(max));
 const count = Schema.Int.check(Schema.isGreaterThanOrEqualTo(0));
+const nonEmpty = Schema.makeFilter((value: object) => Object.keys(value).length > 0);
 const isHttpUrl = (value: string) => {
   try {
     const { protocol } = new URL(value);
@@ -48,7 +50,14 @@ const MarkdownResources = Schema.Struct({
           additions: Schema.optionalKey(count),
           deletions: Schema.optionalKey(count),
           files: Schema.optionalKey(count),
-        }).check(Schema.makeFilter((diff) => Object.keys(diff).length > 0)),
+        }).check(nonEmpty),
+      ),
+      checks: Schema.optionalKey(PullRequestChecksState),
+      review: Schema.optionalKey(PullRequestReviewDecision),
+      comments: Schema.optionalKey(
+        Schema.Struct({ human: Schema.optionalKey(count), agent: Schema.optionalKey(count) }).check(
+          nonEmpty,
+        ),
       ),
       next: Schema.optionalKey(text(256)),
       stale: Schema.optionalKey(Schema.Boolean),

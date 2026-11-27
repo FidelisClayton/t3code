@@ -101,7 +101,12 @@ it("shows an answered card collapsed, with the picked action checked and no fill
 });
 
 it("keeps a single answered item visible", async () => {
-  await using screen = await renderNext([item("solo")], () => true, []);
+  await using screen = await renderNext([item("solo")], () => true, ["solo/do"]);
   await expect.element(screen.getByText("Answered")).toBeVisible();
   await expect.element(screen.getByText("Details of solo")).toBeVisible();
+});
+
+it("stays open when the reply picked none of its actions", async () => {
+  await using screen = await renderNext([item("solo")], () => true, []);
+  await expect.element(screen.getByText("Next for you")).toBeVisible();
 });

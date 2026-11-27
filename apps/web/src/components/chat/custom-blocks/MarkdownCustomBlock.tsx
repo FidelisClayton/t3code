@@ -25,6 +25,9 @@ import { MarkdownSwatchesBlock } from "./MarkdownSwatchesBlock";
 import { parseMarkdownSwatches } from "./markdownSwatches";
 import { MarkdownResourcesBlock } from "./MarkdownResourcesBlock";
 import { parseMarkdownResources } from "./markdownResources";
+import { MarkdownFactsBlock } from "./MarkdownFactsBlock";
+import { parseMarkdownFacts } from "./markdownFacts";
+import type { RenderBlockMarkdown } from "./markdownInline";
 
 function ContextFormBlock({ form }: { form: MarkdownFormDefinition }) {
   const { onSendAppMessage } = use(MarkdownChatHandlersContext);
@@ -41,7 +44,7 @@ export function renderMarkdownCustomBlock({
   renderMarkdown,
 }: {
   namedReferences: boolean;
-  renderMarkdown: (body: string, namedReferences?: boolean, sourceChoices?: boolean) => ReactNode;
+  renderMarkdown: RenderBlockMarkdown;
   language: string;
   meta: string | undefined;
   source: string;
@@ -90,12 +93,14 @@ function renderPresentationBlock(
   language: string,
   source: string,
   threadRef: ScopedThreadRef | undefined,
-  renderMarkdown: (body: string, namedReferences?: boolean, sourceChoices?: boolean) => ReactNode,
+  renderMarkdown: RenderBlockMarkdown,
 ): ReactNode | undefined {
   switch (language) {
     case "compare": {
       const compare = parseMarkdownCompare(source);
-      return compare ? <MarkdownCompareBlock key={source} compare={compare} /> : null;
+      return compare ? (
+        <MarkdownCompareBlock key={source} compare={compare} renderMarkdown={renderMarkdown} />
+      ) : null;
     }
     case "steps": {
       const steps = parseMarkdownSteps(source);
@@ -105,15 +110,21 @@ function renderPresentationBlock(
     }
     case "metrics": {
       const metrics = parseMarkdownMetrics(source);
-      return metrics ? <MarkdownMetricsBlock key={source} metrics={metrics} /> : null;
+      return metrics ? (
+        <MarkdownMetricsBlock key={source} metrics={metrics} renderMarkdown={renderMarkdown} />
+      ) : null;
     }
     case "scope": {
       const scope = parseMarkdownScope(source);
-      return scope ? <MarkdownScopeBlock key={source} scope={scope} /> : null;
+      return scope ? (
+        <MarkdownScopeBlock key={source} scope={scope} renderMarkdown={renderMarkdown} />
+      ) : null;
     }
     case "risks": {
       const risks = parseMarkdownRisks(source);
-      return risks ? <MarkdownRisksBlock key={source} risks={risks} /> : null;
+      return risks ? (
+        <MarkdownRisksBlock key={source} risks={risks} renderMarkdown={renderMarkdown} />
+      ) : null;
     }
     case "status": {
       const status = parseMarkdownStatus(source);
@@ -128,7 +139,9 @@ function renderPresentationBlock(
     }
     case "swatches": {
       const swatches = parseMarkdownSwatches(source);
-      return swatches ? <MarkdownSwatchesBlock key={source} swatches={swatches} /> : null;
+      return swatches ? (
+        <MarkdownSwatchesBlock key={source} swatches={swatches} renderMarkdown={renderMarkdown} />
+      ) : null;
     }
     case "resources": {
       const resources = parseMarkdownResources(source);
@@ -138,6 +151,12 @@ function renderPresentationBlock(
           resources={resources}
           renderMarkdown={renderMarkdown}
         />
+      ) : null;
+    }
+    case "facts": {
+      const facts = parseMarkdownFacts(source);
+      return facts ? (
+        <MarkdownFactsBlock key={source} facts={facts} renderMarkdown={renderMarkdown} />
       ) : null;
     }
     default:

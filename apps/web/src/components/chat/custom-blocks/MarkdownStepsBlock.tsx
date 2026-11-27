@@ -2,19 +2,23 @@
 /* oxlint-disable react/no-array-index-key -- Each immutable steps list remounts when its source changes. */
 import { useGT } from "gt-react";
 import {
+  ChevronDownIcon,
   CircleCheckIcon,
   CircleDashedIcon,
   CircleHelpIcon,
   CircleXIcon,
   ClockIcon,
 } from "lucide-react";
-import type { ReactNode } from "react";
+import { inlineMarkdown, type RenderBlockMarkdown } from "./markdownInline";
 import type { MarkdownStepsDefinition } from "./markdownSteps";
 import "./MarkdownDisclosure.css";
 import "./MarkdownCard.css";
 import "./MarkdownStepsBlock.css";
 
-type Meta = { owner?: "user" | "agent"; state?: MarkdownStepsDefinition["items"][number]["state"] };
+type Meta = {
+  owner?: "user" | "agent" | undefined;
+  state?: MarkdownStepsDefinition["items"][number]["state"] | undefined;
+};
 
 const stateIcons = {
   planned: CircleDashedIcon,
@@ -29,9 +33,10 @@ export function MarkdownStepsBlock({
   renderMarkdown,
 }: {
   steps: MarkdownStepsDefinition;
-  renderMarkdown: (body: string, namedReferences?: boolean, sourceChoices?: boolean) => ReactNode;
+  renderMarkdown: RenderBlockMarkdown;
 }) {
   const gt = useGT();
+  const md = (text: string) => inlineMarkdown(text, renderMarkdown);
   const owners = { user: gt("You"), agent: gt("Agent") };
   const states = {
     planned: gt("Planned"),
@@ -62,35 +67,61 @@ export function MarkdownStepsBlock({
   const Tag = steps.ordered === false ? "ul" : "ol";
   return (
     <section className="markdown-card markdown-steps" aria-label={steps.title ?? gt("Steps")}>
-      {steps.title ? <p className="markdown-card-title">{steps.title}</p> : null}
+      {steps.title ? <div className="markdown-card-title">{md(steps.title)}</div> : null}
       <Tag
         className="markdown-card-list markdown-steps-list"
         data-ordered={steps.ordered !== false}
       >
         {steps.items.map((item, index) => (
           <li className="markdown-steps-item" key={index}>
-            <div className="markdown-steps-head">
-              <span className="markdown-steps-label">{item.label}</span>
-              {meta(item)}
-            </div>
-            {item.parallel ? (
-              <div className="markdown-steps-parallel">
-                <span className="markdown-steps-caption">{gt("In parallel")}</span>
-                <div className="markdown-steps-chips">
-                  {item.parallel.map((entry, parallelIndex) => (
-                    <span className="markdown-steps-chip" key={parallelIndex}>
-                      <span>{entry.label}</span>
-                      {meta(entry)}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            ) : null}
+            {/* A step with a detail is its own disclosure, so it keeps one row until opened. */}
             {item.detail ? (
               <details className="markdown-steps-detail">
-                <summary>{gt("Details")}</summary>
+                <summary className="markdown-steps-head">
+                  <span className="markdown-steps-label">{md(item.label)}</span>
+                  <span className="markdown-steps-end">
+                    {meta(item)}
+                    <ChevronDownIcon aria-hidden="true" className="markdown-steps-chevron" />
+                  </span>
+                </summary>
                 {renderMarkdown(item.detail)}
               </details>
+            ) : (
+              <div className="markdown-steps-head">
+                <span className="markdown-steps-label">{md(item.label)}</span>
+                <span className="markdown-steps-end">
+                  {meta(item)}
+                  <ChevronDownIcon
+                    aria-hidden="true"
+                    className="markdown-steps-chevron invisible"
+                  />
+                </span>
+              </div>
+            )}
+            {item.parallel ? (
+              <ol className="markdown-steps-parallel" aria-label={gt("In parallel")}>
+                {item.parallel.map((entry, parallelIndex) => (
+                  <li className="markdown-steps-sub" key={parallelIndex}>
+                    <span className="markdown-steps-letter">
+                      {steps.ordered === false ? "" : index + 1}
+                      {String.fromCharCode(97 + parallelIndex)}
+                    </span>
+                    <div className="markdown-steps-head">
+                      <span className="markdown-steps-label">{md(entry.label)}</span>
+                      <span className="markdown-steps-end">
+                        {meta({
+                          owner: entry.owner === item.owner ? undefined : entry.owner,
+                          state: entry.state,
+                        })}
+                        <ChevronDownIcon
+                          aria-hidden="true"
+                          className="markdown-steps-chevron invisible"
+                        />
+                      </span>
+                    </div>
+                  </li>
+                ))}
+              </ol>
             ) : null}
           </li>
         ))}

@@ -479,6 +479,7 @@ export interface ChatComposerProps {
   onPageScrollKeyUp: (key: string) => void;
   onPageScrollRelease: () => void;
   onScrollToEnd: () => void;
+  onScrollToMessage: (messageId: string) => void;
 
   editingQueuedAttachments: ReadonlyArray<{
     readonly attachment: ContractChatAttachment;
@@ -609,6 +610,7 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
     onPageScrollKeyUp,
     onPageScrollRelease,
     onScrollToEnd,
+    onScrollToMessage,
     onCompactContext,
     onSend,
     captureDetachedSend,
@@ -3784,6 +3786,7 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
               threadRef={routeThreadRef}
               cwd={gitCwd ?? undefined}
               onScrollToEnd={onScrollToEnd}
+              onScrollToMessage={onScrollToMessage}
             />
           ) : null}
         </ComposerBanner.Column>

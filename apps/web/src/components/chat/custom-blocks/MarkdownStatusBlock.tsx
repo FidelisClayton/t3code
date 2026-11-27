@@ -3,13 +3,13 @@
 import { useAtomValue } from "@effect/atom-react";
 import type { ScopedThreadRef } from "@t3tools/contracts";
 import { derivePendingThreadRequests } from "@t3tools/client-runtime/state/thread-requests";
-import { useGT } from "gt-react";
+import { T, useGT, Var } from "gt-react";
 import { InfoIcon, TriangleAlertIcon, Undo2Icon } from "lucide-react";
-import type { ReactNode } from "react";
 
 import { Badge } from "~/components/ui/badge";
 import { useQuietThreadProjection } from "~/state/entities";
 import { childThreadApprovalsAtom } from "~/state/threads";
+import { inlineMarkdown, type RenderBlockMarkdown } from "./markdownInline";
 import type { MarkdownStatusDefinition } from "./markdownStatus";
 import "./MarkdownCard.css";
 import "./MarkdownDisclosure.css";
@@ -31,9 +31,10 @@ export function MarkdownStatusBlock({
 }: {
   status: MarkdownStatusDefinition;
   threadRef?: ScopedThreadRef | undefined;
-  renderMarkdown: (body: string, namedReferences?: boolean, sourceChoices?: boolean) => ReactNode;
+  renderMarkdown: RenderBlockMarkdown;
 }) {
   const gt = useGT();
+  const md = (text: string) => inlineMarkdown(text, renderMarkdown);
   const verifiedQuiet = useThreadHasNoPendingRequests(threadRef);
   const attention =
     status.attention === "optional"
@@ -50,10 +51,10 @@ export function MarkdownStatusBlock({
   return (
     <div className="markdown-card markdown-status">
       <div className="markdown-status-head">
-        <p className="markdown-card-title markdown-status-title">
+        <div className="markdown-card-title markdown-status-title">
           <i className="markdown-status-dot" data-state={status.state} aria-hidden="true" />
-          {status.title}
-        </p>
+          {md(status.title)}
+        </div>
         {attention ? (
           <Badge variant={status.attention === "optional" ? "info" : "success"}>{attention}</Badge>
         ) : null}
@@ -61,9 +62,11 @@ export function MarkdownStatusBlock({
       <div className="markdown-status-body">
         {renderMarkdown(status.body)}
         {status.default ? (
-          <p className="markdown-status-default">
-            {gt("Default: {text}", { text: status.default })}
-          </p>
+          <div className="markdown-status-default">
+            <T>
+              Default: <Var>{md(status.default)}</Var>
+            </T>
+          </div>
         ) : null}
       </div>
       {status.notes ? (
@@ -73,7 +76,7 @@ export function MarkdownStatusBlock({
             const heading = (
               <>
                 <span className="markdown-status-kind">{kinds[note.kind]}</span>
-                <span>{note.text}</span>
+                <span>{md(note.text)}</span>
               </>
             );
             return (
