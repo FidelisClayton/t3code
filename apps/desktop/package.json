@@ -1,6 +1,6 @@
 {
   "name": "@t3tools/desktop",
-  "version": "0.1.13-nightly.20261125.5258+fidelis.1",
+  "version": "0.1.14-nightly.20261127.5319+fidelis.1",
   "private": true,
   "type": "module",
   "main": "dist-electron/boot.cjs",
