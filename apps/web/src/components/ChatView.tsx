@@ -2282,6 +2282,7 @@ export default function ChatView(props: ChatViewProps) {
     onIsAtEndChangeStable,
     anchorNewTurn,
     attachTimelineViewport,
+    releaseFollowForNavigation: releaseTimelineFollow,
     attachComposerOverlay: attachFollowComposerOverlay,
   } = useTimelineFollow({
     legendListRef,
@@ -3227,7 +3228,7 @@ export default function ChatView(props: ChatViewProps) {
   const onComposerSendStable = useStableCallback(onSend);
   const onComposerScrollToEndStable = useStableCallback(() => scrollToEnd());
   const onComposerScrollToMessageStable = useStableCallback((messageId: string) =>
-    scrollTimelineToMessage(legendListRef.current, messageId),
+    scrollTimelineToMessage(legendListRef.current, messageId, releaseTimelineFollow),
   );
   const sendPreviewAnnotation = (
     annotation: PreviewAnnotationPayload,

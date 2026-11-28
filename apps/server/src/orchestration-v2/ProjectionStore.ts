@@ -47,6 +47,7 @@ import type {
   OrchestrationV2ThreadShellSnapshot,
   OrchestrationV2ShellThreadStatus,
   OrchestrationV2ThreadShell,
+  OrchestrationV2ThreadPlanProgress,
   OrchestrationV2ThreadProjection,
   OrchestrationV2TurnItem,
   GuestShareId,
@@ -1214,7 +1215,10 @@ export function applyToProjection(
     case "plan.updated":
       return {
         ...base,
-        plans: upsertById(base.plans, event.payload),
+        plans: upsertById(
+          base.plans,
+          ForkProjectionStore.stampPlanUpdatedAt(event.payload, event.occurredAt),
+        ),
       };
     case "checkpoint-scope.created":
       return {
@@ -1953,6 +1957,9 @@ export function threadShellFromProjection(
   });
   return {
     createdThreadIds: ForkProjectionStore.createdThreadIdsFromProjection(projection),
+    ...ForkProjectionStore.planProgressField(
+      ForkProjectionStore.planProgressFromProjection(projection, latestUserAuthoredMessageAt),
+    ),
     createdBy: projection.thread.createdBy,
     creationSource: projection.thread.creationSource,
     id: projection.thread.id,
@@ -2271,11 +2278,13 @@ function visibleItemCountForShell(input: {
 
 function shellFromState(input: {
   readonly createdThreadIds: ReadonlyArray<ThreadId>;
+  readonly planProgress?: OrchestrationV2ThreadPlanProgress | undefined;
   readonly state: ShellThreadState;
   readonly visibleItemCount: number;
 }): OrchestrationV2ThreadShell {
   return {
     createdThreadIds: input.createdThreadIds,
+    ...ForkProjectionStore.planProgressField(input.planProgress),
     createdBy: input.state.thread.createdBy,
     creationSource: input.state.thread.creationSource,
     id: input.state.thread.id,
@@ -3173,7 +3182,9 @@ export const layer: Layer.Layer<ProjectionStoreV2, never, SqlClient.SqlClient> =
               break;
             }
             case "plan.updated": {
-              const payloadJson = yield* encodePlanPayload(event.payload);
+              const payloadJson = yield* encodePlanPayload(
+                ForkProjectionStore.stampPlanUpdatedAt(event.payload, event.occurredAt),
+              );
               yield* sql`
               INSERT INTO orchestration_v2_projection_plans (
                 plan_id,
@@ -8822,6 +8833,7 @@ export const layer: Layer.Layer<ProjectionStoreV2, never, SqlClient.SqlClient> =
           `;
 
     const selectShellCreatedThreadRows = ForkProjectionStore.selectShellCreatedThreadRows(sql);
+    const selectShellPlanRows = ForkProjectionStore.selectShellPlanRows(sql);
 
     const selectShellPendingTurnItemRows = (
       threadIds?: ReadonlyArray<ThreadId>,
@@ -9419,6 +9431,7 @@ export const layer: Layer.Layer<ProjectionStoreV2, never, SqlClient.SqlClient> =
         providerThreadRows,
         pendingTurnItemRows,
         createdThreadRows,
+        planRows,
       ] = yield* Effect.all([
         readForThreadIds(selectShellRunRows, forkSourceIds),
         readForThreadIds(selectShellRunItemCounts, forkSourceIds),
@@ -9441,6 +9454,7 @@ export const layer: Layer.Layer<ProjectionStoreV2, never, SqlClient.SqlClient> =
           ),
         ),
         readForThreadIds(selectShellCreatedThreadRows, [...targetThreadIds]),
+        readForThreadIds(selectShellPlanRows, [...targetThreadIds]),
       ]);
       return {
         targetThreadIds,
@@ -9452,6 +9466,7 @@ export const layer: Layer.Layer<ProjectionStoreV2, never, SqlClient.SqlClient> =
         providerThreadRows,
         pendingTurnItemRows,
         createdThreadRows,
+        planRows,
       };
     });
 
@@ -9465,6 +9480,7 @@ export const layer: Layer.Layer<ProjectionStoreV2, never, SqlClient.SqlClient> =
       providerThreadRows,
       pendingTurnItemRows,
       createdThreadRows,
+      planRows,
     }: Effect.Success<ReturnType<typeof readShellSnapshotRows>>) {
       const { runsByThreadId, itemCountsByThreadId } = runMapsByThreadId({
         runRows,
@@ -9486,11 +9502,16 @@ export const layer: Layer.Layer<ProjectionStoreV2, never, SqlClient.SqlClient> =
       const statesByThreadId = new Map(states.map((state) => [state.thread.id, state]));
 
       const creationIds = ForkProjectionStore.createdThreadIdsByThreadId(createdThreadRows);
+      const planProgress = ForkProjectionStore.planProgressByThreadId(
+        planRows,
+        (id) => statesByThreadId.get(id)?.latestUserAuthoredMessageAt,
+      );
       const shells = states
         .filter((state) => targetThreadIds.has(state.thread.id))
         .map((state) =>
           shellFromState({
             createdThreadIds: creationIds.get(state.thread.id) ?? [],
+            planProgress: planProgress.get(state.thread.id),
             state,
             visibleItemCount: visibleItemCountForShell({
               threadId: state.thread.id,
@@ -9949,6 +9970,7 @@ export const layer: Layer.Layer<ProjectionStoreV2, never, SqlClient.SqlClient> =
               providerThreadRows,
               pendingTurnItemRows,
               createdThreadRows,
+              planRows,
             ] = yield* Effect.all([
               forkSourceIds.length === 0
                 ? Effect.succeed([] as ReadonlyArray<ShellRunRow>)
@@ -9967,6 +9989,7 @@ export const layer: Layer.Layer<ProjectionStoreV2, never, SqlClient.SqlClient> =
                 ),
               ),
               selectShellCreatedThreadRows([threadId]),
+              selectShellPlanRows([threadId]),
             ]);
             const { runsByThreadId, itemCountsByThreadId } = runMapsByThreadId({
               runRows,
@@ -9995,6 +10018,10 @@ export const layer: Layer.Layer<ProjectionStoreV2, never, SqlClient.SqlClient> =
               createdThreadIds:
                 ForkProjectionStore.createdThreadIdsByThreadId(createdThreadRows).get(threadId) ??
                 [],
+              planProgress: ForkProjectionStore.planProgressByThreadId(
+                planRows,
+                () => state.latestUserAuthoredMessageAt,
+              ).get(threadId),
               state,
               visibleItemCount: visibleItemCountForShell({ threadId, statesByThreadId }),
             });

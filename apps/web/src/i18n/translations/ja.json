@@ -13105,5 +13105,7 @@
   "57ff60eef95c3b10": "この項目を閉じる",
   "63790659557f315e": "詳細を表示",
   "948e9dede9fff51b": "この{block}ブロックを表示できません",
-  "b1cc8f4ddbfda715": "元のデータを表示"
+  "b1cc8f4ddbfda715": "元のデータを表示",
+  "982a8585f50a47d6": "Run を開く: プランの {total} ステップ中 {completed} ステップ完了{agents, plural, =0 {} other {、{agents} 個のエージェントが実行中}}",
+  "9420d329b9117540": "Run を開く: プランの {total} ステップ中 {completed} ステップ完了、現在 {current}{agents, plural, =0 {} other {、{agents} 個のエージェントが実行中}}"
 }

@@ -1,7 +1,13 @@
 import type { EnvironmentServerConfig } from "@t3tools/client-runtime/connection";
 import { scopedThreadKey, scopeThreadRef } from "@t3tools/client-runtime/environment";
 import { presentThreadShell } from "@t3tools/client-runtime/state/models";
-import { DEFAULT_CLIENT_SETTINGS, EnvironmentId, ProjectId, ThreadId } from "@t3tools/contracts";
+import {
+  DEFAULT_CLIENT_SETTINGS,
+  EnvironmentId,
+  ProjectId,
+  RunId,
+  ThreadId,
+} from "@t3tools/contracts";
 import * as DateTime from "effect/DateTime";
 import { describe, expect, it, vi } from "vite-plus/test";
 import { userEvent } from "vite-plus/test/browser";
@@ -214,5 +220,67 @@ describe("Boring thread disclosure", () => {
       expect(row).not.toBeNull();
       expect(row!.querySelector(".text-info-foreground")).not.toBeNull();
     });
+  });
+  it.each([
+    ["card", false],
+    ["folder-multiline", true],
+  ])("renders the plan line in the %s row layout", async (_layout, folder) => {
+    using stack = new DisposableStack();
+    const previousSettings = getClientSettings();
+    const previousUiState = useUiStateStore.getState();
+    stack.defer(() => {
+      __setClientSettingsForTests(previousSettings);
+      useUiStateStore.setState(previousUiState);
+      vi.mocked(useQuietThreadShells).mockReset();
+      vi.mocked(useThreadRouteTarget).mockReset();
+      vi.mocked(useServerConfigs).mockReset();
+    });
+    __setClientSettingsForTests({
+      ...DEFAULT_CLIENT_SETTINGS,
+      boringSidebarEnabled: folder,
+      boringSidebarMultilineRows: true,
+    });
+    // The card layout lives on the Working shelf, which starts collapsed.
+    localStorage.setItem("t3code:sidebar:working-expanded", "true");
+    stack.defer(() => localStorage.removeItem("t3code:sidebar:working-expanded"));
+    const owner = project("plan-project");
+    const shell = presentThreadShell(owner.environmentId, {
+      ...makeThreadFixture().source,
+      id: ThreadId.make("Planner"),
+      title: "Planner",
+      projectId: owner.id,
+      latestRunId: RunId.make("run-1"),
+      activeRunId: RunId.make("run-1"),
+      status: "running",
+      planProgress: { completed: 2, total: 5, current: "Write tests" },
+    });
+    useUiStateStore.setState({
+      projectExpandedById: {},
+      sidebarProjectScopeKeys: [],
+      sidebarThreadExpandedByKey: {},
+    });
+    vi.mocked(useServerConfigs).mockReturnValue(
+      new Map([[owner.environmentId, {} as unknown as EnvironmentServerConfig]]),
+    );
+    vi.mocked(useProjects).mockReturnValue([owner]);
+    vi.mocked(useQuietThreadShells).mockReturnValue([shell]);
+    vi.mocked(useThreadRouteTarget).mockReturnValue({ kind: "none" } as never);
+    vi.mocked(useHandleNewThread).mockReturnValue({
+      activeDraftThread: null,
+      activeThread: null,
+      defaultProjectRef: { environmentId: owner.environmentId, projectId: owner.id },
+      defaultProjectFallbackReady: true,
+      handleNewThread: vi.fn(),
+      routeDraftId: null,
+      routeThreadRef: null,
+    });
+    await using screen = await render(
+      <SidebarProvider>
+        <Sidebar routeReveal={{ observedKey: null, pendingKey: null }} />
+      </SidebarProvider>,
+    );
+    await expect
+      .element(screen.getByTestId("sidebar-plan-progress"))
+      .toHaveTextContent("2/5·Write tests");
   });
 });

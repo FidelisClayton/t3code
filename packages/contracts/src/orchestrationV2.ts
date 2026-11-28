@@ -1564,6 +1564,9 @@ export const OrchestrationV2ConversationMessage = Schema.Struct({
 });
 export type OrchestrationV2ConversationMessage = typeof OrchestrationV2ConversationMessage.Type;
 
+/** The most steps one `thread.plan.update` may carry; the MCP tool schema shares it. */
+export const ORCHESTRATION_V2_PLAN_MAX_STEPS = 40;
+
 export const OrchestrationV2PlanStep = Schema.Struct({
   id: TrimmedNonEmptyString,
   text: TrimmedNonEmptyString,
@@ -1612,6 +1615,8 @@ export const OrchestrationV2PlanArtifact = Schema.Union([
     kind: Schema.Literal("todo_list"),
     steps: Schema.Array(OrchestrationV2PlanStep),
     explanation: Schema.optional(Schema.String),
+    /** Fork: when the plan was last written; the sidebar hides it once the user spoke later. */
+    updatedAt: Schema.optional(Schema.DateTimeUtcFromString),
   }),
 ]);
 export type OrchestrationV2PlanArtifact = typeof OrchestrationV2PlanArtifact.Type;
@@ -2415,11 +2420,20 @@ export const OrchestrationV2LatestVisibleMessageSummary = Schema.Struct({
 export type OrchestrationV2LatestVisibleMessageSummary =
   typeof OrchestrationV2LatestVisibleMessageSummary.Type;
 
+/** Fork: progress of the thread's latest todo-list plan, for the sidebar row. */
+export const OrchestrationV2ThreadPlanProgress = Schema.Struct({
+  completed: NonNegativeInt,
+  total: NonNegativeInt,
+  current: Schema.NullOr(Schema.String),
+});
+export type OrchestrationV2ThreadPlanProgress = typeof OrchestrationV2ThreadPlanProgress.Type;
+
 export const OrchestrationV2ThreadShell = Schema.Struct({
   ...OrchestrationV2CreationFields,
   id: ThreadId,
   projectId: ProjectId,
   createdThreadIds: Schema.optional(Schema.Array(ThreadId)),
+  planProgress: Schema.optional(OrchestrationV2ThreadPlanProgress),
   title: Schema.String,
   providerInstanceId: ProviderInstanceId,
   modelSelection: ModelSelection,
@@ -3852,6 +3866,18 @@ export type OrchestrationV2Command = typeof OrchestrationV2Command.Type;
 
 // Excluded from dispatchCommand so only the server can send these.
 const OrchestrationV2InternalCommand = Schema.Union([
+  /** Fork: the server records an agent's plan progress (MCP `t3_plan_update`). */
+  Schema.Struct({
+    type: Schema.Literal("thread.plan.update"),
+    commandId: CommandId,
+    threadId: ThreadId,
+    runId: RunId,
+    steps: Schema.Array(OrchestrationV2PlanStep).check(
+      Schema.isMinLength(1),
+      Schema.isMaxLength(ORCHESTRATION_V2_PLAN_MAX_STEPS),
+    ),
+    explanation: Schema.optional(Schema.String),
+  }),
   // The server issues this after checking the value against the run's declared schema.
   Schema.Struct({
     type: Schema.Literal("run.output.submit"),

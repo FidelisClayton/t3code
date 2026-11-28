@@ -13176,5 +13176,7 @@
   "57ff60eef95c3b10": "Avfärda det här objektet",
   "63790659557f315e": "Visa detaljer",
   "948e9dede9fff51b": "Det gick inte att visa det här {block}-blocket",
-  "b1cc8f4ddbfda715": "Visa rådata"
+  "b1cc8f4ddbfda715": "Visa rådata",
+  "982a8585f50a47d6": "Öppna Run: {completed} av {total} plansteg klara{agents, plural, =0 {} one {, {agents} agent körs} other {, {agents} agenter körs}}",
+  "9420d329b9117540": "Öppna Run: {completed} av {total} plansteg klara, nu {current}{agents, plural, =0 {} one {, {agents} agent körs} other {, {agents} agenter körs}}"
 }

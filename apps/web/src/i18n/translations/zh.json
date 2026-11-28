@@ -13180,5 +13180,7 @@
   "57ff60eef95c3b10": "忽略此项",
   "63790659557f315e": "显示详情",
   "948e9dede9fff51b": "无法显示此 {block} 块",
-  "b1cc8f4ddbfda715": "显示原始内容"
+  "b1cc8f4ddbfda715": "显示原始内容",
+  "982a8585f50a47d6": "打开 Run：计划 {total} 步中已完成 {completed} 步{agents, plural, =0 {} other {，{agents} 个智能体正在运行}}",
+  "9420d329b9117540": "打开 Run：计划 {total} 步中已完成 {completed} 步，当前 {current}{agents, plural, =0 {} other {，{agents} 个智能体正在运行}}"
 }
