@@ -13169,5 +13169,7 @@
   "57ff60eef95c3b10": "Diesen Eintrag ausblenden",
   "63790659557f315e": "Details anzeigen",
   "948e9dede9fff51b": "Dieser {block}-Block konnte nicht angezeigt werden",
-  "b1cc8f4ddbfda715": "Rohdaten anzeigen"
+  "b1cc8f4ddbfda715": "Rohdaten anzeigen",
+  "982a8585f50a47d6": "Run öffnen: {completed} von {total} Planschritten erledigt{agents, plural, =0 {} one {, {agents} Agent läuft} other {, {agents} Agenten laufen}}",
+  "9420d329b9117540": "Run öffnen: {completed} von {total} Planschritten erledigt, jetzt {current}{agents, plural, =0 {} one {, {agents} Agent läuft} other {, {agents} Agenten laufen}}"
 }

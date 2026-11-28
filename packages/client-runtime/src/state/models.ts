@@ -156,6 +156,7 @@ const EMPTY_CREATED_THREAD_IDS: ReadonlyArray<ThreadId> = Object.freeze([]);
 
 export interface EnvironmentThreadShell {
   readonly createdThreadIds: ReadonlyArray<ThreadId>;
+  readonly planProgress?: OrchestrationV2ThreadShell["planProgress"];
   readonly environmentId: EnvironmentId;
   readonly id: ThreadId;
   readonly projectId: ProjectId;
@@ -306,6 +307,7 @@ export function presentThreadShell(
   return {
     environmentId,
     createdThreadIds: thread.createdThreadIds ?? EMPTY_CREATED_THREAD_IDS,
+    ...(thread.planProgress === undefined ? {} : { planProgress: thread.planProgress }),
     id: thread.id,
     projectId: thread.projectId,
     title:

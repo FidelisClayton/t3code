@@ -108,6 +108,8 @@ import {
 } from "./toolkits/device/tools.ts";
 import * as HtmlHandlers from "./toolkits/html/handlers.ts";
 import { MessageToolkit } from "./toolkits/message/tools.ts";
+import { PlanToolkit } from "./toolkits/plan/tools.ts";
+import * as PlanHandlers from "./toolkits/plan/handlers.ts";
 import * as MessageHandlers from "./toolkits/message/handlers.ts";
 import { HtmlPreviewTool, HtmlPreviewToolkit, HtmlRenderToolkit } from "./toolkits/html/tools.ts";
 import { MCP_HTTP_PATH } from "../httpCors.ts";
@@ -1454,6 +1456,7 @@ export const layerThreadToolkit = toolkitRegistration(ThreadToolkit, ThreadHandl
 const layerWorkflowToolkit = toolkitRegistration(WorkflowToolkit, WorkflowHandlers.layer);
 
 export const layerMessageToolkit = toolkitRegistration(MessageToolkit, MessageHandlers.layer);
+const layerPlanToolkit = toolkitRegistration(PlanToolkit, PlanHandlers.layer);
 
 const layerWorktreeToolkitRegistration = toolkitRegistration(
   WorktreeToolkit,
@@ -1561,6 +1564,7 @@ export const layerTools = Layer.mergeAll(
   layerDeviceToolkit,
   layerHtmlToolkit,
   layerMessageToolkit,
+  layerPlanToolkit,
 );
 
 const layerToolExposure = Layer.effect(

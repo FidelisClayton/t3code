@@ -142,6 +142,7 @@ import { useThreadHasUnsentDraft } from "../../composerDraftStore";
 import { ThreadDetailsIssueRows } from "../chat/ThreadDetailsIssueRows";
 import { IssueGlyph, issueStatePresentation } from "../issue/issuePresentation";
 import { useThreadIntentPrefetch } from "./useThreadIntentPrefetch";
+import { SidebarPlanProgress } from "./SidebarPlanProgress";
 import {
   familyRowIndent,
   SidebarDescendantAttentionBadge,
@@ -1559,6 +1560,13 @@ const SidebarThreadRow = memo(function SidebarThreadRow(props: SidebarThreadRowP
             {props.sweepAction !== null ? dragDestination : null}
           </div>
           {multiline ? metaLine : null}
+          {multiline ? (
+            <SidebarPlanProgress
+              thread={thread}
+              isRouteThread={props.isRouteThread}
+              onThreadActivate={onThreadActivate}
+            />
+          ) : null}
         </ThreadHoverCardTrigger>
       </li>
     );
@@ -1779,6 +1787,11 @@ const SidebarThreadRow = memo(function SidebarThreadRow(props: SidebarThreadRowP
           </div>
           {metaLine}
         </div>
+        <SidebarPlanProgress
+          thread={thread}
+          isRouteThread={props.isRouteThread}
+          onThreadActivate={onThreadActivate}
+        />
       </ThreadHoverCardTrigger>
     </li>
   );

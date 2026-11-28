@@ -4,6 +4,7 @@ import {
   MessageId,
   type ModelSelection,
   NodeId,
+  PlanId,
   ProjectId,
   ProviderDriverKind,
   ProviderInstanceId,
@@ -310,4 +311,255 @@ it.effect("reads only local durable creation links in bounded shell queries", ()
       ),
     );
   }).pipe(Effect.provide(layerTest)),
+);
+
+it.effect("shell planProgress follows the latest todo_list plan by run ordinal", () =>
+  Effect.gen(function* () {
+    const store = yield* ProjectionStore.ProjectionStoreV2;
+    const sql = yield* SqlClient.SqlClient;
+    const now = yield* DateTime.now;
+    const { projectId, activeThreadId, forkThreadId, sourceThreadId } =
+      yield* assertProjectScopedShells("plan-shell");
+    const sourceRun = (yield* store.getThreadProjection(sourceThreadId)).runs[0]!;
+    const runs = [
+      [RunId.make("run:plan-shell:old"), 10],
+      [RunId.make("run:plan-shell:new"), 11],
+    ] as const;
+    for (const [id, ordinal] of runs) {
+      yield* store.apply({
+        id: EventId.make(`event:${id}`),
+        type: "run.created",
+        threadId: activeThreadId,
+        runId: id,
+        occurredAt: now,
+        payload: { ...sourceRun, id, threadId: activeThreadId, ordinal },
+      });
+    }
+    const step = (id: string, status: "pending" | "running" | "completed") => ({
+      id,
+      text: `step ${id}`,
+      status,
+    });
+    const plans = [
+      [
+        activeThreadId,
+        runs[1][0],
+        [step("a", "completed"), step("b", "pending"), step("c", "running")],
+      ],
+      // Written later but belongs to an older run, so it must lose.
+      [activeThreadId, runs[0][0], [step("z", "pending")]],
+      [forkThreadId, null, [step("d", "completed")]],
+    ] as const;
+    for (const [index, [threadId, runId, steps]] of plans.entries()) {
+      yield* store.apply({
+        id: EventId.make(`event:plan-shell:${index}`),
+        type: "plan.updated",
+        threadId,
+        occurredAt: now,
+        payload: {
+          id: PlanId.make(`plan:plan-shell:${index}`),
+          threadId,
+          runId,
+          nodeId: NodeId.make(`node:plan-shell:${index}`),
+          status: "active",
+          kind: "todo_list",
+          steps,
+        },
+      });
+    }
+    const expected = new Map([
+      [activeThreadId, { completed: 1, total: 3, current: "step c" }],
+      [forkThreadId, { completed: 1, total: 1, current: null }],
+    ]);
+    const snapshot = yield* store.getShellSnapshot({ projectId, location: "active" });
+    for (const [threadId, progress] of expected) {
+      assert.deepEqual(
+        snapshot.threads.find((thread) => thread.id === threadId)?.planProgress,
+        progress,
+      );
+      assert.deepEqual((yield* store.getThreadShell(threadId))?.planProgress, progress);
+      assert.deepEqual(
+        ProjectionStore.threadShellFromProjection(yield* store.getThreadProjection(threadId))
+          .planProgress,
+        progress,
+      );
+    }
+    assert.isUndefined(
+      snapshot.threads.find((thread) => thread.id === sourceThreadId)?.planProgress,
+    );
+    const decode = yield* sql.withTransaction(
+      store.readShellSnapshot({ projectId, location: "active" }),
+    );
+    assert.deepEqual(yield* decode, snapshot);
+  }).pipe(Effect.provide(layerTest)),
+);
+
+it.effect("shell planProgress agrees across SQL and projection for filtered and tied plans", () =>
+  Effect.gen(function* () {
+    const store = yield* ProjectionStore.ProjectionStoreV2;
+    const sql = yield* SqlClient.SqlClient;
+    const now = yield* DateTime.now;
+    const { projectId, activeThreadId, sourceThreadId } =
+      yield* assertProjectScopedShells("plan-filters");
+    const sourceRun = (yield* store.getThreadProjection(sourceThreadId)).runs[0]!;
+    let event = 0;
+    const addRun = (name: string, ordinal: number, status?: "rolled_back") => {
+      const id = RunId.make(`run:plan-filters:${name}`);
+      return store
+        .apply({
+          id: EventId.make(`event:plan-filters:${event++}`),
+          type: "run.created",
+          threadId: activeThreadId,
+          runId: id,
+          occurredAt: now,
+          payload: {
+            ...sourceRun,
+            id,
+            threadId: activeThreadId,
+            ordinal,
+            ...(status === undefined ? {} : { status }),
+          },
+        })
+        .pipe(Effect.as(id));
+    };
+    const addPlan = (
+      name: string,
+      runId: RunId,
+      options: { status?: "active" | "superseded"; detailInTurnItem?: true; steps: number },
+    ) =>
+      store.apply({
+        id: EventId.make(`event:plan-filters:${event++}`),
+        type: "plan.updated",
+        threadId: activeThreadId,
+        occurredAt: now,
+        payload: {
+          id: PlanId.make(`plan:plan-filters:${name}`),
+          threadId: activeThreadId,
+          runId,
+          nodeId: NodeId.make(`node:plan-filters:${name}`),
+          status: options.status ?? "active",
+          kind: "todo_list",
+          steps: Array.from({ length: options.steps }, (_, index) => ({
+            id: `s${index}`,
+            text: `step ${index}`,
+            status: "pending" as const,
+          })),
+          ...(options.detailInTurnItem === undefined ? {} : { detailInTurnItem: true as const }),
+        },
+      });
+    const expectTotal = Effect.fn(function* (total: number | undefined) {
+      const fromSql = (yield* store.getShellSnapshot({
+        projectId,
+        location: "active",
+      })).threads.find((thread) => thread.id === activeThreadId)?.planProgress;
+      const fromShell = (yield* store.getThreadShell(activeThreadId))?.planProgress;
+      const fromProjection = ProjectionStore.threadShellFromProjection(
+        yield* store.getThreadProjection(activeThreadId),
+      ).planProgress;
+      for (const progress of [fromSql, fromShell, fromProjection]) {
+        assert.strictEqual(progress?.total, total);
+      }
+    });
+
+    yield* expectTotal(undefined);
+    // Two plans on one run: the higher plan id wins in both paths, whatever the write order.
+    const tieRun = yield* addRun("tie", 100);
+    yield* addPlan("b", tieRun, { steps: 2 });
+    yield* addPlan("a", tieRun, { steps: 1 });
+    yield* expectTotal(2);
+    // A superseded plan on a newer run is ignored.
+    yield* addPlan("superseded", yield* addRun("superseded", 101), {
+      status: "superseded",
+      steps: 5,
+    });
+    yield* expectTotal(2);
+    // A rolled-back run's plan is ignored.
+    yield* addPlan("rolled-back", yield* addRun("rolled-back", 102, "rolled_back"), { steps: 6 });
+    yield* expectTotal(2);
+    // A plan whose detail lives in a turn item still counts.
+    yield* addPlan("detail", yield* addRun("detail", 103), { detailInTurnItem: true, steps: 3 });
+    yield* expectTotal(3);
+
+    const { statements, tracer } = traceSqlStatements();
+    yield* store
+      .getShellSnapshot({ projectId, location: "active" })
+      .pipe(Effect.withTracer(tracer));
+    const query = statements.find(
+      (statement) => statement.includes("ROW_NUMBER()") && statement.includes("projection_plans"),
+    );
+    assert.isDefined(query);
+    // The ranking subquery reads plan keys, not payloads.
+    assert.notMatch(query!, /json_extract\(p\./);
+    const plan = (yield* sql.unsafe<{ readonly detail: string }>(`EXPLAIN QUERY PLAN ${query}`))
+      .map((row) => row.detail)
+      .join("\n");
+    assert.include(plan, "orchestration_v2_projection_plans_thread_idx");
+  }).pipe(Effect.provide(layerTest)),
+);
+
+it.effect(
+  "shell planProgress hides a plan older than the user's latest message on every path",
+  () =>
+    Effect.gen(function* () {
+      const store = yield* ProjectionStore.ProjectionStoreV2;
+      const now = yield* DateTime.now;
+      const { projectId, activeThreadId } = yield* assertProjectScopedShells("plan-stale");
+      const at = (seconds: number) => DateTime.add(now, { seconds });
+      const writePlan = (seconds: number) =>
+        store.apply({
+          id: EventId.make(`event:plan-stale:plan:${seconds}`),
+          type: "plan.updated",
+          threadId: activeThreadId,
+          occurredAt: at(seconds),
+          payload: {
+            id: PlanId.make("plan:plan-stale"),
+            threadId: activeThreadId,
+            runId: null,
+            nodeId: NodeId.make("node:plan-stale"),
+            status: "active",
+            kind: "todo_list",
+            steps: [{ id: "a", text: "step a", status: "pending" }],
+          },
+        });
+      const expectShown = Effect.fn(function* (shown: boolean) {
+        const fromSnapshot = (yield* store.getShellSnapshot({
+          projectId,
+          location: "active",
+        })).threads.find((thread) => thread.id === activeThreadId)?.planProgress;
+        const fromShell = (yield* store.getThreadShell(activeThreadId))?.planProgress;
+        const fromProjection = ProjectionStore.threadShellFromProjection(
+          yield* store.getThreadProjection(activeThreadId),
+        ).planProgress;
+        for (const progress of [fromSnapshot, fromShell, fromProjection]) {
+          assert.strictEqual(progress !== undefined, shown);
+        }
+      });
+
+      yield* writePlan(0);
+      yield* expectShown(true);
+      yield* store.apply({
+        id: EventId.make("event:plan-stale:message"),
+        type: "message.updated",
+        threadId: activeThreadId,
+        occurredAt: at(10),
+        payload: {
+          id: MessageId.make("message:plan-stale"),
+          threadId: activeThreadId,
+          runId: null,
+          nodeId: null,
+          role: "user",
+          text: "next question",
+          attachments: [],
+          streaming: false,
+          createdBy: "user",
+          creationSource: "web",
+          createdAt: at(10),
+          updatedAt: at(10),
+        },
+      });
+      yield* expectShown(false);
+      // Steering: the agent updates the plan after the user spoke, so the line returns.
+      yield* writePlan(20);
+      yield* expectShown(true);
+    }).pipe(Effect.provide(layerTest)),
 );

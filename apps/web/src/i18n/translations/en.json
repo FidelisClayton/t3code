@@ -13174,5 +13174,7 @@
   "57ff60eef95c3b10": "Dismiss this item",
   "63790659557f315e": "Show details",
   "948e9dede9fff51b": "Couldn't show this {block} block",
-  "b1cc8f4ddbfda715": "Show raw"
+  "b1cc8f4ddbfda715": "Show raw",
+  "982a8585f50a47d6": "Open Run: {completed} of {total} plan steps done{agents, plural, =0 {} one {, {agents} agent running} other {, {agents} agents running}}",
+  "9420d329b9117540": "Open Run: {completed} of {total} plan steps done, now {current}{agents, plural, =0 {} one {, {agents} agent running} other {, {agents} agents running}}"
 }

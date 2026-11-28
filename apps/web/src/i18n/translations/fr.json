@@ -13169,5 +13169,7 @@
   "57ff60eef95c3b10": "Ignorer cet élément",
   "63790659557f315e": "Afficher les détails",
   "948e9dede9fff51b": "Impossible d'afficher ce bloc {block}",
-  "b1cc8f4ddbfda715": "Afficher le brut"
+  "b1cc8f4ddbfda715": "Afficher le brut",
+  "982a8585f50a47d6": "Ouvrir Run : {completed} étapes du plan terminées sur {total}{agents, plural, =0 {} one {, {agents} agent en cours} other {, {agents} agents en cours}}",
+  "9420d329b9117540": "Ouvrir Run : {completed} étapes du plan terminées sur {total}, maintenant {current}{agents, plural, =0 {} one {, {agents} agent en cours} other {, {agents} agents en cours}}"
 }

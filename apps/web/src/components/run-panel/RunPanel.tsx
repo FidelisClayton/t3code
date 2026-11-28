@@ -579,7 +579,16 @@ function PlanDetails({
       {plan.kind === "todo_list" ? (
         <>
           {plan.explanation ? (
-            <p className={styles["run-panel-secondary"]}>{plan.explanation}</p>
+            <div className={styles["run-panel-secondary"]}>
+              <ChatMarkdown
+                inline
+                text={plan.explanation}
+                cwd={undefined}
+                threadRef={threadRef}
+                customBlocks={false}
+                parseRawHtml={false}
+              />
+            </div>
           ) : null}
           <ol className={styles["run-panel-plan"]}>
             {plan.steps.map((step) => (

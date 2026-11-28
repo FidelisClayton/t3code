@@ -87,6 +87,7 @@ import {
 import * as KeyedLock from "@t3tools/shared/KeyedLock";
 import { modelSelectionsEqual } from "@t3tools/shared/model";
 import { expandAssistantCitationsForProvider } from "@t3tools/shared/assistantCitations";
+import { buildPlanUpdatedEvent } from "./ForkPlanUpdate.ts";
 import { modelSwitchSince } from "./modelSwitch.ts";
 import {
   contextBoundaryOrdinal,
@@ -692,6 +693,7 @@ function commandThreadId(command: OrchestrationV2ServerCommand): ThreadId {
     case "subagent.stop":
     case "run.interrupt":
     case "run.output.submit":
+    case "thread.plan.update":
     case "queued-message.promote-to-steer":
     case "queued-run.start":
     case "queue.resume":
@@ -16454,6 +16456,23 @@ const makeOrchestrator = Effect.fn("orchestrationV2.Orchestrator.layer")(functio
         break;
       case "run.output.submit":
         yield* dispatchRunOutputSubmit(command, events);
+        break;
+      case "thread.plan.update":
+        yield* emit(
+          events,
+          command,
+        )(
+          yield* buildPlanUpdatedEvent(
+            command,
+            projectionStore,
+            (cause) =>
+              new OrchestratorDispatchError({
+                commandId: command.commandId,
+                commandType: command.type,
+                cause,
+              }),
+          ),
+        );
         break;
       case "checkpoint.rollback":
         yield* dispatchCheckpointRollback(command, events, effects);

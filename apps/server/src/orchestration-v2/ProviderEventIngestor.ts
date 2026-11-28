@@ -85,9 +85,9 @@ export const ProviderEventIngestorV2Error = Schema.Union([
 ]);
 export type ProviderEventIngestorV2Error = typeof ProviderEventIngestorV2Error.Type;
 
-type TodoListPlan = Extract<OrchestrationV2PlanArtifact, { readonly kind: "todo_list" }>;
+export type TodoListPlan = Extract<OrchestrationV2PlanArtifact, { readonly kind: "todo_list" }>;
 
-function withPlanStepDurations(
+export function withPlanStepDurations(
   plan: TodoListPlan,
   previous: TodoListPlan | undefined,
   occurredAt: DateTime.Utc,

@@ -13164,5 +13164,7 @@
   "57ff60eef95c3b10": "Descartar este elemento",
   "63790659557f315e": "Mostrar detalles",
   "948e9dede9fff51b": "No se pudo mostrar este bloque {block}",
-  "b1cc8f4ddbfda715": "Mostrar sin procesar"
+  "b1cc8f4ddbfda715": "Mostrar sin procesar",
+  "982a8585f50a47d6": "Abrir Run: {completed} de {total} pasos del plan completados{agents, plural, =0 {} one {, {agents} agente en ejecución} other {, {agents} agentes en ejecución}}",
+  "9420d329b9117540": "Abrir Run: {completed} de {total} pasos del plan completados, ahora {current}{agents, plural, =0 {} one {, {agents} agente en ejecución} other {, {agents} agentes en ejecución}}"
 }

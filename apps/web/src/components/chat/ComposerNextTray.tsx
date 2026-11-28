@@ -356,8 +356,15 @@ export function ComposerNextTray({
 }
 
 /** Brings an older message's row into the virtualized timeline so its in-message choice can mount. */
-export function scrollTimelineToMessage(list: LegendListRef | null, messageId: string) {
+export function scrollTimelineToMessage(
+  list: LegendListRef | null,
+  messageId: string,
+  releaseFollow: () => void,
+) {
   const rows = list?.getState().data as ReadonlyArray<MessagesTimelineRow> | undefined;
   const index = rows?.findIndex((row) => row.kind === "message" && row.message.id === messageId);
-  if (index !== undefined && index >= 0) void list?.scrollToIndex({ index, animated: false });
+  if (index === undefined || index < 0) return;
+  // Without releasing follow, maintainScrollAtEnd snaps the list back to the end while a turn runs.
+  releaseFollow();
+  void list?.scrollToIndex({ index, animated: false });
 }

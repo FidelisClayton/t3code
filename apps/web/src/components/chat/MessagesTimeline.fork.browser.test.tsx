@@ -7,6 +7,7 @@ import "~/index.css";
 
 import { render } from "../../../test/render";
 import { MessagesTimeline } from "./MessagesTimeline";
+import { scrollTimelineToMessage } from "./ComposerNextTray";
 
 const ENVIRONMENT_ID = EnvironmentId.make("environment-local");
 const CREATED_AT = "2026-03-17T19:12:28.000Z";
@@ -131,5 +132,40 @@ describe("MessagesTimeline citations in custom blocks", () => {
     );
     await expect.element(screen.getByText("the cited answer", { exact: true })).toBeVisible();
     expect(screen.container.querySelectorAll("details[open]")).toHaveLength(1);
+  });
+});
+
+describe("MessagesTimeline reveal of an older message while a turn runs", () => {
+  it("keeps the older row mounted after the reveal scroll", async () => {
+    const listRef = createRef<LegendListRef | null>();
+    const entries = Array.from({ length: 60 }, (_, i) =>
+      message(`Reply ${i} ${"filler ".repeat(60)}`, { role: "assistant" }, `m-${i}`),
+    );
+    const timeline = (extra: number, following: boolean) => (
+      <MessagesTimeline
+        {...baseProps()}
+        listRef={listRef}
+        isWorking
+        liveFollowEnabled={following}
+        timelineEntries={[
+          ...entries.slice(0, -1),
+          message(
+            `Reply 59 ${"streamed ".repeat(extra)}`,
+            { role: "assistant", streaming: true },
+            "m-59",
+          ),
+        ]}
+      />
+    );
+    let following = true;
+    await using screen = await renderElement(timeline(0, following));
+    await vi.waitFor(() => expect(screen.container.textContent).toContain("Reply 59"));
+    const releaseFollow = vi.fn(() => {
+      following = false;
+    });
+    scrollTimelineToMessage(listRef.current, "m-3", releaseFollow);
+    expect(releaseFollow).toHaveBeenCalledOnce();
+    for (let extra = 1; extra <= 5; extra++) await screen.rerender(timeline(extra, following));
+    await vi.waitFor(() => expect(screen.container.textContent).toContain("Reply 3 "));
   });
 });

@@ -543,6 +543,7 @@ export function useTimelineFollow(input: TimelineFollowInput) {
     onIsAtEndChangeStable,
     anchorNewTurn,
     attachTimelineViewport,
+    releaseFollowForNavigation,
     attachComposerOverlay: followStore.attachComposerOverlay,
   };
 }
